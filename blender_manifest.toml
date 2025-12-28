@@ -7,7 +7,7 @@ tagline = "Professional Blender addon for VRChat avatar creation workflows"
 maintainer = "NYARC Labs <support@nyarc-labs.dev>"
 type = "add-on"
 
-website = "https://github.com/VRNyarc/nyarc-vrcat-tools"
+website = "https://github.com/Myarcer/nyarc-vrcat-tools"
 
 # Supported Blender versions
 blender_version_min = "4.2.0"

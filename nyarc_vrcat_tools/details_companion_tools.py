@@ -14,7 +14,7 @@ class INFO_OT_open_documentation(Operator):
     def execute(self, context):
         import webbrowser
         # Open Nyarc VRCat Tools documentation/README
-        webbrowser.open("https://github.com/VRNyarc/nyarc-vrcat-tools#readme")
+        webbrowser.open("https://github.com/Myarcer/nyarc-vrcat-tools#readme")
         self.report({'INFO'}, "Documentation opened in web browser")
         return {'FINISHED'}
 
@@ -29,7 +29,7 @@ class INFO_OT_open_support(Operator):
     def execute(self, context):
         import webbrowser
         # Open GitHub issues page for support
-        webbrowser.open("https://github.com/VRNyarc/nyarc-vrcat-tools/issues")
+        webbrowser.open("https://github.com/Myarcer/nyarc-vrcat-tools/issues")
         self.report({'INFO'}, "Support page opened in web browser")
         return {'FINISHED'}
 
@@ -43,7 +43,7 @@ class INFO_OT_open_nyarc_github(Operator):
     
     def execute(self, context):
         import webbrowser
-        webbrowser.open("https://github.com/VRNyarc/nyarc-vrcat-tools")
+        webbrowser.open("https://github.com/Myarcer/nyarc-vrcat-tools")
         self.report({'INFO'}, "GitHub repository opened in web browser")
         return {'FINISHED'}
 

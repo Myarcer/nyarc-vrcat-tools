@@ -6,7 +6,7 @@ I am new to Github / Dev. Please go easy on me. This Project was Developed with 
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 [![Blender](https://img.shields.io/badge/Blender-4.2+-orange.svg)](https://www.blender.org/)
-[![Release](https://img.shields.io/github/v/release/VRNyarc/nyarc-vrcat-tools)](https://github.com/VRNyarc/nyarc-vrcat-tools/releases)
+[![Release](https://img.shields.io/github/v/release/Myarcer/nyarc-vrcat-tools)](https://github.com/Myarcer/nyarc-vrcat-tools/releases)
 
 ## ✨ Features
 
@@ -47,7 +47,7 @@ Advanced armature difference calculation and export system:
 ## 🚀 Installation
 
 ### **Automatic Installation (Recommended)**
-1. Download the latest release ZIP: [Releases](https://github.com/VRNyarc/nyarc-vrcat-tools/releases)
+1. Download the latest release ZIP: [Releases](https://github.com/Myarcer/nyarc-vrcat-tools/releases)
 2. In Blender: `Edit` → `Preferences` → `Add-ons` → `Install...`
 3. Select the downloaded ZIP file
 4. Enable "NYARC VRCat Tools" in the add-ons list
@@ -136,9 +136,9 @@ and takes inspiration from [RinvosBlendshapeTransfer](https://github.com/neongm/
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/VRNyarc/nyarc-vrcat-tools/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/VRNyarc/nyarc-vrcat-tools/discussions)
-- **Documentation**: [Wiki](https://github.com/VRNyarc/nyarc-vrcat-tools/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Myarcer/nyarc-vrcat-tools/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Myarcer/nyarc-vrcat-tools/discussions)
+- **Documentation**: [Wiki](https://github.com/Myarcer/nyarc-vrcat-tools/wiki)
 
 ---
 
