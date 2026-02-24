@@ -104,8 +104,8 @@ done
 ## Dependencies Overview
 
 ### scipy (~30MB)
-- **Purpose**: Sparse matrix operations, KD-tree
-- **Used in**: `correspondence.py` (BVH tree), `inpainting.py` (sparse solver)
+- **Purpose**: Sparse matrix operations
+- **Used in**: `inpainting.py` (sparse solver, Laplacian weights)
 - **License**: BSD-3-Clause ✅ (compatible)
 
 ### robust-laplacian (~50KB)
