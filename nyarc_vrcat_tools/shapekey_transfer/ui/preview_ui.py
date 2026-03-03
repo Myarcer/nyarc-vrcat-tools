@@ -69,7 +69,7 @@ def draw_live_preview_ui(layout, context, props):
         # Show helpful notes
         if targets_without_keys > 0:
             info_row = preview_box.row()
-            info_row.label(text="💡 Transfer shape keys first to enable full live sync on all targets", icon='LIGHTBULB')
+            info_row.label(text="💡 Transfer shape keys first to enable full live sync on all targets", icon='LIGHT')
         
         if not props.shapekey_sync_enabled:
             disabled_info_row = preview_box.row()

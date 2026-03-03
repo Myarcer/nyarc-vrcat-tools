@@ -971,7 +971,7 @@ class VIEW3D_PT_nyarc_tools_manager(Panel):
         except Exception as e:
             error_box = layout.box()
             error_box.label(text="Error loading modules!", icon='ERROR')
-            error_box.label(text=f"Details: {str(e)[:50]}")
+            error_box.label(text=f"Details: {str(e)[:100]}")
         
         # Footer info
         layout.separator()
