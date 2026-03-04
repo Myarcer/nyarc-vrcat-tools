@@ -105,66 +105,35 @@ class ARMATURE_OT_pose_history_education_popup(Operator):
 
 
 class ARMATURE_OT_pose_history_disable_warning(Operator):
-    """Show warning when disabling pose history with existing data"""
+    """Show info when disabling pose history with existing data"""
     bl_idname = "armature.pose_history_disable_warning"
-    bl_label = "Pose History Disabled - Important Warning"
-    bl_description = "Warning about disabling pose history with existing data"
+    bl_label = "Pose History Disabled"
+    bl_description = "Info about disabling pose history"
     bl_options = {'REGISTER', 'INTERNAL'}
     
     def execute(self, context):
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self, width=550)
+        return context.window_manager.invoke_props_dialog(self, width=420)
     
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-        col.scale_y = 1.2
+        col.scale_y = 1.1
         
-        # Warning title
-        title_row = col.row()
-        title_row.alignment = 'CENTER'
-        title_row.alert = True
-        title_row.label(text="⚠ Pose History Disabled - Critical Warning", icon='ERROR')
-        
+        col.label(text="Pose History Disabled", icon='INFO')
         col.separator()
         
-        # Main warning
-        warning_box = col.box()
-        warning_col = warning_box.column()
-        warning_col.scale_y = 0.9
-        warning_col.alert = True
-        
-        warning_col.label(text="You have disabled pose history, but existing history data was found.", icon='CANCEL')
-        warning_col.label(text="", icon='BLANK1')  # Spacing
-        warning_col.label(text="CRITICAL: If you 'Apply as Rest Pose' again without re-enabling", icon='ERROR')
-        warning_col.label(text="pose history, you will PERMANENTLY LOSE the ability to revert", icon='ERROR')
-        warning_col.label(text="to your original pose states.", icon='ERROR')
-        
-        col.separator()
-        
-        # Solutions
-        solution_box = col.box()
-        solution_col = solution_box.column()
-        solution_col.scale_y = 0.9
-        
-        solution_col.label(text="Recommended actions:", icon='LIGHT_SUN')
-        solution_col.label(text="• Re-enable pose history checkbox to continue safe workflow")
-        solution_col.label(text="• OR: Export current history entries as presets first")
-        solution_col.label(text="• OR: Use 'Load Original Pose' to revert before final Apply Rest Pose")
-        
-        col.separator()
-        
-        # Understanding
-        understand_box = col.box()
-        understand_col = understand_box.column()
-        understand_col.scale_y = 0.8
-        
-        understand_col.label(text="Why this matters:", icon='INFO')
-        understand_col.label(text="Pose history only captures poses BEFORE 'Apply as Rest Pose' operations.")
-        understand_col.label(text="Without history enabled, the next Apply Rest Pose will create no snapshot,")
-        understand_col.label(text="making it impossible to revert to any previous pose states.")
+        box = col.box()
+        box_col = box.column()
+        box_col.scale_y = 0.9
+        box_col.label(text="Auto-saving is now off. No new snapshots will be created.")
+        box_col.label(text="Existing history data is kept until you remove it.")
+        box_col.separator()
+        box_col.label(text="To fully remove Pose History data:", icon='TRASH')
+        box_col.label(text="Delete the generated metadata object from your scene.")
+        box_col.label(text="(It's a hidden mesh named after your armature)")
 
 
 class ARMATURE_OT_refresh_pose_history_ui(Operator):
