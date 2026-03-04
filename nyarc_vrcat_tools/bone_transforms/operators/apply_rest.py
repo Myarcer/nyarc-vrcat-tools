@@ -306,9 +306,13 @@ def execute_apply_rest_pose_core(context, armature, operator_self, skip_inherit_
             print("Pose History: Auto-save not available (module not loaded)")
         
         # Get all meshes with armature modifiers pointing to this armature
+        # IMPORTANT: Only include objects in the current view layer to avoid
+        # errors from orphaned/unlinked objects (e.g. deleted meshes still in bpy.data)
+        view_layer_objects = set(context.view_layer.objects)
         mesh_objects = []
         for obj in bpy.data.objects:
             if (obj.type == 'MESH' and 
+                obj in view_layer_objects and
                 any(mod.type == 'ARMATURE' and mod.object == armature for mod in obj.modifiers)):
                 mesh_objects.append(obj)
         
@@ -514,9 +518,13 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
         print("STEP 6: Applying pose as rest pose...")
         
         # Process meshes first
+        # IMPORTANT: Only include objects in the current view layer to avoid
+        # errors from orphaned/unlinked objects (e.g. deleted meshes still in bpy.data)
+        view_layer_objects = set(context.view_layer.objects)
         mesh_objects = []
         for obj in bpy.data.objects:
             if (obj.type == 'MESH' and 
+                obj in view_layer_objects and
                 any(mod.type == 'ARMATURE' and mod.object == armature for mod in obj.modifiers)):
                 mesh_objects.append(obj)
         
