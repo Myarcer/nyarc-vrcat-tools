@@ -37,20 +37,43 @@ class MESH_OT_enter_shapekey_edit(Operator):
     bl_description = "Select the target mesh, activate the chosen shape key, enter edit/sculpt mode, and optionally enable symmetry"
     bl_options = {'REGISTER', 'UNDO'}
 
+    # Optional inline parameters - when provided, override props
+    target_name: StringProperty(
+        name="Target Name",
+        description="Target mesh name (optional, overrides selected target)",
+        default="",
+    )
+    
+    shape_key_name: StringProperty(
+        name="Shape Key Name",
+        description="Shape key to activate (optional, overrides active index)",
+        default="",
+    )
+
     @classmethod
     def poll(cls, context):
         props = getattr(context.scene, 'nyarc_tools_props', None)
         if not props:
             return False
+        # Allow if we have operator params OR a target mesh set in props
         target = props.shapekey_edit_target_mesh
-        if not target or not target.data.shape_keys:
-            return False
+        if target and target.data.shape_keys:
+            return True
+        # Also allow - operator params will be checked in execute
         return True
 
     def execute(self, context):
         props = context.scene.nyarc_tools_props
-        target_mesh = props.shapekey_edit_target_mesh
         mode_type = props.shapekey_edit_mode_type
+
+        # Resolve target mesh: inline param > props
+        if self.target_name:
+            target_mesh = bpy.data.objects.get(self.target_name)
+            if not target_mesh or target_mesh.type != 'MESH':
+                self.report({'ERROR'}, f"Object '{self.target_name}' not found or not a mesh")
+                return {'CANCELLED'}
+        else:
+            target_mesh = props.shapekey_edit_target_mesh
 
         if not target_mesh:
             self.report({'ERROR'}, "No target mesh selected for editing")
@@ -60,9 +83,17 @@ class MESH_OT_enter_shapekey_edit(Operator):
             self.report({'ERROR'}, f"'{target_mesh.name}' has no shape keys")
             return {'CANCELLED'}
 
-        # Find the active shape key index from the UI selection
-        # The shape key is selected via the built-in prop on the mesh's shape_keys
-        active_sk_index = target_mesh.active_shape_key_index
+        # Resolve shape key: inline param > active index
+        if self.shape_key_name:
+            key_blocks = target_mesh.data.shape_keys.key_blocks
+            sk_index = key_blocks.find(self.shape_key_name)
+            if sk_index < 0:
+                self.report({'ERROR'}, f"Shape key '{self.shape_key_name}' not found on '{target_mesh.name}'")
+                return {'CANCELLED'}
+            target_mesh.active_shape_key_index = sk_index
+            active_sk_index = sk_index
+        else:
+            active_sk_index = target_mesh.active_shape_key_index
 
         # Ensure we're in object mode first
         if context.mode != 'OBJECT':
