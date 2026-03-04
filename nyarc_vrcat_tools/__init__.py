@@ -599,7 +599,13 @@ class NyarcToolsProperties(PropertyGroup):
         min=0
     )
     
-    # Live preview and synchronization properties
+    # Shape Key Workspace properties (preview, sync, and quick edit)
+    shapekey_workspace_expanded: BoolProperty(
+        name="Show Shape Key Workspace",
+        description="Show the Shape Key Workspace panel (preview, sync, and quick edit)",
+        default=False
+    )
+    
     shapekey_preview_mode: BoolProperty(
         name="Show Live Preview",
         description="Show live shape key synchronization preview panel",
@@ -615,6 +621,48 @@ class NyarcToolsProperties(PropertyGroup):
     shapekey_help_expanded: BoolProperty(
         name="Show Help",
         description="Show/hide help information panel",
+        default=False
+    )
+    
+    # Quick Shape Key Edit properties
+    shapekey_quick_edit_expanded: BoolProperty(
+        name="Show Quick Edit",
+        description="Show the quick shape key edit section",
+        default=False
+    )
+    
+    shapekey_edit_target_mesh: PointerProperty(
+        name="Edit Target Mesh",
+        description="Mesh to enter edit/sculpt mode on for shape key editing",
+        type=Object,
+        poll=mesh_poll,
+    )
+    
+    shapekey_edit_mode_type: EnumProperty(
+        name="Edit Mode",
+        description="Mode to enter for shape key editing",
+        items=[
+            ('EDIT', "Edit Mode", "Enter Edit Mode for vertex-level editing"),
+            ('SCULPT', "Sculpt Mode", "Enter Sculpt Mode for brush-based editing"),
+        ],
+        default='SCULPT'
+    )
+    
+    shapekey_edit_symmetry_x: BoolProperty(
+        name="X",
+        description="Auto-enable X axis symmetry when entering edit mode",
+        default=True
+    )
+    
+    shapekey_edit_symmetry_y: BoolProperty(
+        name="Y",
+        description="Auto-enable Y axis symmetry when entering edit mode",
+        default=False
+    )
+    
+    shapekey_edit_symmetry_z: BoolProperty(
+        name="Z",
+        description="Auto-enable Z axis symmetry when entering edit mode",
         default=False
     )
     
