@@ -645,8 +645,19 @@ class NyarcToolsProperties(PropertyGroup):
             ('EDIT', "Edit Mode", "Enter Edit Mode for vertex-level editing"),
             ('SCULPT', "Sculpt Mode", "Enter Sculpt Mode for brush-based editing"),
         ],
-        default='SCULPT'
+        default='SCULPT',
+        update=lambda self, ctx: self._mode_type_update(ctx)
     )
+    
+    def _mode_type_update(self, context):
+        """Switch mode live when toggling Edit/Sculpt while already in edit or sculpt"""
+        import bpy
+        if context.mode == 'EDIT_MESH' and self.shapekey_edit_mode_type == 'SCULPT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.mode_set(mode='SCULPT')
+        elif context.mode == 'SCULPT' and self.shapekey_edit_mode_type == 'EDIT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.mode_set(mode='EDIT')
     
     def _symmetry_update(self, context):
         """Update mesh symmetry live when toggling in edit/sculpt mode"""
