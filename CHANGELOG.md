@@ -7,6 +7,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+## v0.0.1 (2026-03-04)
+
+### New Features
+* feat: initial project structure and professional Blender addon
+* docs: add comprehensive version management documentation for /clear recovery
+* feat: improve UI layout and add optional XZ scaling analysis
+* docs: clean up changelog - remove duplicates and add v0.1.2 changes
+* feat: major shapekey transfer improvements - v0.1.5
+* feat: advanced shape key transfer & post-processing - v0.1.6
+* docs: add Phase 1 & 2 progress report
+* feat: add poll methods and validation to apply_rest operators (4/4)
+* feat: experimental robust weight transfer with advanced shape key processing
+* docs: add comprehensive merge summary for unified branch
+* feat: add mesh island handling and fix UI bugs in Robust Transfer
+* refactor: simplify island handling to fully automatic + add slider bars
+* feat: add Skip/Override to Robust mode + make mutually exclusive
+* docs: fix contributor name capitalization and add licensing analysis
+* docs: add comprehensive v0.2.0 changelog for users
+* chore: add GPL-3.0 license field to bl_info
+* Merge pull request #3 from VRNyarc/claude/add-gpl-license-field-011CUru1ywUR2cRZTkNHJpoU
+* feat: add hot reload support for addon reinstallation
+* fix: enhance hot reload to work with enabled addon reinstall
+* fix: implement proper Blender hot reload pattern
+* docs: update all "restart Blender" references to "disable/enable addon"
+* fix: add hot reload to shapekey_transfer for robust dependencies
+* feat: make Advanced Options subsections collapsible with improved spacing
+* feat: add nested collapsibles to Advanced Options subsections
+* chore: add .gitignore to exclude Python cache files
+* fix: implement reliable mode switching when changing transfer settings
+* debug: add verbose logging to diagnose timer execution issues
+* debug: add entry/exit logging to all update callbacks to diagnose if they fire
+* feat: auto-return to WEIGHT_PAINT mode and improve robust debug visualization
+* docs: add clear update workflow instructions to README
+* feat: enable robust weight transfer for multi-target mode (#12)
+* feat: restructure Live Preview into Shape Key Workspace with Quick Edit
+
+### Bug Fixes
+* docs: improve README feature descriptions and fix typos
+* docs: fix Bone Transform Saver description to accurately reflect CATS-like functionality
+* fix: resolve inherit scale mixed case overscaling and mode switching errors
+* fix: remove console spam from poll methods and UI operations
+* hotfix: fix apply rest pose context error with inherit_scale settings
+* docs: fix critical version inconsistencies and broken links
+* fix: critical Phase 0 bugs - remove duplicates, fix memory leak, remove OLD files
+* fix: replace bare except blocks in Priority 1 operators (18/54)
+* fix: critical Robust Transfer bugs - UI controls and island clipping
+* fix: debug visualization persistence + improve tooltips
+* fix: improve shape key smoothing effectiveness and usability
+* fix: hide legacy smoothing UI when Robust Transfer mode enabled
+* merge: integrate shapekey smoothing fixes
+* fix: aggressive hot reload with module re-import in register()
+* fix: improve spacing between UI sections and info labels
+* Merge branch 'claude/unified-testing-011CUq2CtqkX7tvaBpFMXbEG' into claude/fix-advanced-options-subsections-011CUtxweZ2H4CVPXsuCKzVn
+* fix: improve internal spacing in Advanced Options subsections
+* fix: restore hot reload support removed during merge
+* fix: restore improved smoothing UI from unified-testing branch
+* fix: remove duplicate Delete Mask button next to Transfer button
+* Merge pull request #7 from VRNyarc/claude/fix-advanced-options-subsections-011CUtxweZ2H4CVPXsuCKzVn
+* fix: resolve mode switching and debug visualization edge cases in shape key transfer
+* fix: automatically clear visualizations when changing transfer settings
+* fix: use deferred timer execution for reliable WEIGHT_PAINT mode exit
+* fix: correct mode string from WEIGHT_PAINT to PAINT_WEIGHT for context checks
+* Merge pull request #9 from VRNyarc/claude/fix-shape-key-transfer-011CUu3atcrcFtn1LYBXFwyC
+* fix: correct hot reload by assigning importlib.reload() return values
+* Claude/fix pose history scroll 011 c uzzcpzobxfv u1 fq zsme y (#11)
+* fix: update version references to 0.2.3 (#13)
+* Claude/fix pose history scroll 011 c uzzcpzobxfv u1 fq zsme y (#14)
+* fix: replace scipy KD-tree with Blender native BVHTree in correspondence
+* fix: 2 UI bugs in shape key transfer panel
+* fix: prevent POSE mode crash when active object is mesh during apply-rest-with-flattening
+* fix: skip orphaned meshes not in view layer during apply-rest-pose
+* fix: simplify pose history disable warning to match actual behavior
+
+### Other Changes
+* Initial commit
+* docs: update Blender requirement to 4.2+ and remove Discord references
+* docs: remove internal GitHub workflow documentation from public repo
+* Update README.md
+* Update README.md
+* Major bone mapping improvements for VRChat compatibility
+* Update companion module for first release preparation
+* Merge branch 'main' of https://github.com/VRNyarc/nyarc-vrcat-tools
+* Setup automated version management and release system
+* remove: VERSION_MANAGEMENT.md from repo (belongs in project root)
+* release: v0.0.1
+* release: v0.1.0
+* docs: improve changelog with user-focused content
+* release: v0.1.1
+* release: v0.1.0
+* release: v0.0.1
+* release: v0.1.2
+* release: v0.1.3
+* release: v0.0.1
+* release: v0.1.0
+* refactor: create core utility modules for Phase 1 & 2
+* style: standardize naming to VRChat throughout codebase (22 replacements)
+* Revert "style: standardize naming to VRChat throughout codebase (22 replacements)"
+* style: standardize user-facing text to VRCat branding (4 changes)
+* style: complete VRCat product branding standardization
+* Merge branch 'claude/review-project-structure-011CUq2CtqkX7tvaBpFMXbEG' into claude/unified-experimental-robust
+* chore: remove backup files and build artifacts from version control
+* release: v0.2.0 - Robust Shape Key Transfer
+* docs: streamline v0.2.0 changelog - more compact, recommend Robust mode
+* chore: remove internal development documentation
+* Merge pull request #1 from VRNyarc/claude/cleanup-docs-011CUq2CtqkX7tvaBpFMXbEG
+* Update LICENSE
+* chore: switch to GPL-3.0 license for robust module compliance
+* Merge pull request #2 from VRNyarc/claude/switch-to-gpl-3-license-011CUru1ywUR2cRZTkNHJpoU
+* Update README.md
+* docs: update CONTRIBUTING.md for v0.2.0
+* Merge pull request #4 from VRNyarc/claude/cleanup-docs-011CUq2CtqkX7tvaBpFMXbEG
+* refactor: reorganize smoothing UI for better clarity
+* refactor: finalize smoothing UI layout - buttons side by side, slider underneath
+* merge: integrate hot reload support
+* chore: bump version to 2.0.1 for release
+* Merge pull request #8 from VRNyarc/claude/update-main-branch-011CUu2exy2vywcGtBxt6xpV
+* release: v0.2.1 - UI Polish & Hot Reload
+* refactor: replace manual reload with automatic sys.modules cleanup
+* Merge pull request #10 from VRNyarc/claude/hot-swapping-versions-011CUu6V46JBi6psb1J3PgW5
+* release: bump version to 0.2.2
+* release: v0.2.3 (#15)
+* chore: update GitHub links to Myarcer account
+* release: v0.2.4
+* chore: bump version to 0.2.5
+* release: v0.1.0
+
+
 ## v0.1.0 (2026-03-04)
 
 ### New Features
