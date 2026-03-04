@@ -120,6 +120,9 @@ class MESH_OT_enter_shapekey_edit(Operator):
         bpy.ops.object.select_all(action='DESELECT')
         target_mesh.select_set(True)
         context.view_layer.objects.active = target_mesh
+        
+        # Force view layer update so context is valid for mode_set
+        context.view_layer.update()
 
         # Enter the desired mode
         if mode_type == 'EDIT':

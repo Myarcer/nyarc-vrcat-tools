@@ -136,9 +136,9 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
         
         key_block = source_obj.data.shape_keys.key_blocks[key_name]
         
-        row = parent.row(align=True)
+        row = parent.split(factor=0.85, align=True)
         
-        # Slider (takes most of the space)
+        # Slider (left, takes most space)
         slider_sub = row.row(align=True)
         if props.shapekey_sync_enabled:
             slider_sub.prop(key_block, "value", text=key_name, slider=True)
@@ -146,17 +146,17 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
             slider_sub.enabled = False
             slider_sub.prop(key_block, "value", text=key_name, slider=True)
         
-        # Edit button (right side, compact)
+        # Edit button (right side, separate bounding box)
         if edit_target:
-            edit_sub = row.row(align=True)
-            edit_sub.scale_x = 0.35
-            op = edit_sub.operator(
+            op = row.operator(
                 "mesh.enter_shapekey_edit",
                 text="",
                 icon=mode_icon,
             )
             op.target_name = edit_target.name
             op.shape_key_name = key_name
+        else:
+            row.label(text="")
     
     # Show sync status summary
     if len(target_objects) > 0:
