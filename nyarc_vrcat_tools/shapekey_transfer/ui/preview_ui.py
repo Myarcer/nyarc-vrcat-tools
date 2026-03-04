@@ -36,6 +36,10 @@ def draw_workspace_ui(layout, context, props):
     target_objects = _get_all_target_objects(context, props)
     
     if target_objects:
+        # Auto-select first target if none selected
+        if not props.shapekey_edit_target_mesh or props.shapekey_edit_target_mesh not in target_objects:
+            props.shapekey_edit_target_mesh = target_objects[0]
+        
         if len(target_objects) > 1:
             target_label = workspace_box.row()
             target_label.scale_y = 0.8
@@ -59,10 +63,8 @@ def draw_workspace_ui(layout, context, props):
                     else:
                         row.label(text="")
         else:
-            # Single target - auto-set and show as label
+            # Single target - show as label
             single_target = target_objects[0]
-            if not props.shapekey_edit_target_mesh:
-                props.shapekey_edit_target_mesh = single_target
             target_row = workspace_box.row()
             target_row.scale_y = 0.8
             target_row.label(text=f"Target: {single_target.name}", icon='OUTLINER_OB_MESH')
@@ -82,13 +84,6 @@ def draw_workspace_ui(layout, context, props):
     sym_row.prop(props, "shapekey_edit_symmetry_x", text="X", toggle=True)
     sym_row.prop(props, "shapekey_edit_symmetry_y", text="Y", toggle=True)
     sym_row.prop(props, "shapekey_edit_symmetry_z", text="Z", toggle=True)
-    
-    # Apply symmetry live if currently in edit/sculpt mode
-    if in_edit_mode and context.object and context.object.type == 'MESH':
-        mesh = context.object.data
-        mesh.use_mirror_x = props.shapekey_edit_symmetry_x
-        mesh.use_mirror_y = props.shapekey_edit_symmetry_y
-        mesh.use_mirror_z = props.shapekey_edit_symmetry_z
     
     # ─── Sync Controls ───
     sync_row = workspace_box.row(align=True)

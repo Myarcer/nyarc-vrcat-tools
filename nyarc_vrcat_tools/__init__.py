@@ -648,22 +648,33 @@ class NyarcToolsProperties(PropertyGroup):
         default='SCULPT'
     )
     
+    def _symmetry_update(self, context):
+        """Update mesh symmetry live when toggling in edit/sculpt mode"""
+        if context.mode in ('EDIT_MESH', 'SCULPT') and context.object and context.object.type == 'MESH':
+            mesh = context.object.data
+            mesh.use_mirror_x = self.shapekey_edit_symmetry_x
+            mesh.use_mirror_y = self.shapekey_edit_symmetry_y
+            mesh.use_mirror_z = self.shapekey_edit_symmetry_z
+    
     shapekey_edit_symmetry_x: BoolProperty(
         name="X",
         description="Auto-enable X axis symmetry when entering edit mode",
-        default=True
+        default=True,
+        update=lambda self, ctx: type(self)._symmetry_update(self, ctx)
     )
     
     shapekey_edit_symmetry_y: BoolProperty(
         name="Y",
         description="Auto-enable Y axis symmetry when entering edit mode",
-        default=False
+        default=False,
+        update=lambda self, ctx: type(self)._symmetry_update(self, ctx)
     )
     
     shapekey_edit_symmetry_z: BoolProperty(
         name="Z",
         description="Auto-enable Z axis symmetry when entering edit mode",
-        default=False
+        default=False,
+        update=lambda self, ctx: type(self)._symmetry_update(self, ctx)
     )
     
     # Track previous shape key value for restore on exit
