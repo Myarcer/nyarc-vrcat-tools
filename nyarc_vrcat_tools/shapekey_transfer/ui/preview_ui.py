@@ -72,11 +72,23 @@ def draw_workspace_ui(layout, context, props):
     
     workspace_box.separator(factor=0.3)
     
-    # ─── Edit Controls: Mode + Symmetry (compact single row) ───
+    # ─── Edit Controls: Mode select ───
     edit_row = workspace_box.row(align=True)
     edit_row.prop(props, "shapekey_edit_mode_type", expand=True)
-    edit_row.separator(factor=0.5)
-    edit_row.prop(props, "shapekey_edit_symmetry_x", text="Sym X", toggle=True)
+    
+    # ─── Symmetry (separate row) ───
+    sym_row = workspace_box.row(align=True)
+    sym_row.label(text="Sym:", icon='MOD_MIRROR')
+    sym_row.prop(props, "shapekey_edit_symmetry_x", text="X", toggle=True)
+    sym_row.prop(props, "shapekey_edit_symmetry_y", text="Y", toggle=True)
+    sym_row.prop(props, "shapekey_edit_symmetry_z", text="Z", toggle=True)
+    
+    # Apply symmetry live if currently in edit/sculpt mode
+    if in_edit_mode and context.object and context.object.type == 'MESH':
+        mesh = context.object.data
+        mesh.use_mirror_x = props.shapekey_edit_symmetry_x
+        mesh.use_mirror_y = props.shapekey_edit_symmetry_y
+        mesh.use_mirror_z = props.shapekey_edit_symmetry_z
     
     # ─── Sync Controls ───
     sync_row = workspace_box.row(align=True)
@@ -126,22 +138,10 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
         
         row = parent.row(align=True)
         
-        # Slider (enabled only when sync is on)
-        slider_sub = row.row(align=True)
-        slider_sub.scale_x = 1.0
-        if props.shapekey_sync_enabled:
-            slider_sub.prop(key_block, "value", text=key_name, slider=True)
-        else:
-            slider_sub.enabled = False
-            slider_sub.prop(key_block, "value", text=key_name, slider=True)
-        
-        # Sync indicator
-        row.label(text="", icon='LINKED' if props.shapekey_sync_enabled else 'UNLINKED')
-        
-        # Tiny edit button for this specific shape key
+        # Edit button (left side, compact)
         if edit_target:
             edit_sub = row.row(align=True)
-            edit_sub.scale_x = 0.5
+            edit_sub.scale_x = 0.35
             op = edit_sub.operator(
                 "mesh.enter_shapekey_edit",
                 text="",
@@ -149,6 +149,14 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
             )
             op.target_name = edit_target.name
             op.shape_key_name = key_name
+        
+        # Slider (takes remaining space)
+        slider_sub = row.row(align=True)
+        if props.shapekey_sync_enabled:
+            slider_sub.prop(key_block, "value", text=key_name, slider=True)
+        else:
+            slider_sub.enabled = False
+            slider_sub.prop(key_block, "value", text=key_name, slider=True)
     
     # Show sync status summary
     if len(target_objects) > 0:

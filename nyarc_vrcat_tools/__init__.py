@@ -666,6 +666,25 @@ class NyarcToolsProperties(PropertyGroup):
         default=False
     )
     
+    # Track previous shape key value for restore on exit
+    shapekey_edit_prev_value: FloatProperty(
+        name="Previous Shape Key Value",
+        description="Stored value of shape key before entering edit mode",
+        default=0.0
+    )
+    
+    shapekey_edit_prev_key_name: StringProperty(
+        name="Previous Shape Key Name",
+        description="Name of shape key being edited (for restore on exit)",
+        default=""
+    )
+    
+    shapekey_edit_prev_target_name: StringProperty(
+        name="Previous Edit Target",
+        description="Name of mesh being edited (for restore on exit)",
+        default=""
+    )
+    
     def armature_update_callback(self, context):
         """Called when armature selection changes - update inherit scale warning"""
         if self.bone_armature_object:

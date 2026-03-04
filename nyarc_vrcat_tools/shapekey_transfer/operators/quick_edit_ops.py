@@ -90,10 +90,33 @@ class MESH_OT_enter_shapekey_edit(Operator):
             if sk_index < 0:
                 self.report({'ERROR'}, f"Shape key '{self.shape_key_name}' not found on '{target_mesh.name}'")
                 return {'CANCELLED'}
-            target_mesh.active_shape_key_index = sk_index
             active_sk_index = sk_index
         else:
             active_sk_index = target_mesh.active_shape_key_index
+
+        active_key = target_mesh.data.shape_keys.key_blocks[active_sk_index] if active_sk_index < len(target_mesh.data.shape_keys.key_blocks) else None
+        if not active_key:
+            self.report({'ERROR'}, "Invalid shape key index")
+            return {'CANCELLED'}
+        active_key_name = active_key.name
+
+        # Restore previous shape key value if switching keys while in edit/sculpt
+        was_in_edit = context.mode in ('EDIT_MESH', 'SCULPT')
+        if was_in_edit and props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
+            prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
+            if prev_target and prev_target.data.shape_keys:
+                prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
+                if prev_key:
+                    prev_key.value = props.shapekey_edit_prev_value
+
+        # Save current value before we set it to 1
+        props.shapekey_edit_prev_value = active_key.value
+        props.shapekey_edit_prev_key_name = active_key_name
+        props.shapekey_edit_prev_target_name = target_mesh.name
+
+        # Set shape key value to 1 for editing
+        active_key.value = 1.0
+        target_mesh.active_shape_key_index = active_sk_index
 
         # Ensure we're in object mode first
         if context.mode != 'OBJECT':
@@ -116,8 +139,6 @@ class MESH_OT_enter_shapekey_edit(Operator):
             mesh.use_mirror_x = props.shapekey_edit_symmetry_x
             mesh.use_mirror_y = props.shapekey_edit_symmetry_y
             mesh.use_mirror_z = props.shapekey_edit_symmetry_z
-
-        active_key_name = target_mesh.data.shape_keys.key_blocks[active_sk_index].name if active_sk_index < len(target_mesh.data.shape_keys.key_blocks) else "unknown"
 
         symmetry_info = []
         if props.shapekey_edit_symmetry_x:
@@ -144,6 +165,20 @@ class MESH_OT_exit_shapekey_edit(Operator):
         return context.mode in ('EDIT_MESH', 'SCULPT')
 
     def execute(self, context):
+        props = context.scene.nyarc_tools_props
+        
+        # Restore previous shape key value
+        if props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
+            prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
+            if prev_target and prev_target.data.shape_keys:
+                prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
+                if prev_key:
+                    prev_key.value = props.shapekey_edit_prev_value
+        
+        # Clear tracking
+        props.shapekey_edit_prev_key_name = ""
+        props.shapekey_edit_prev_target_name = ""
+        
         bpy.ops.object.mode_set(mode='OBJECT')
         self.report({'INFO'}, "Exited shape key edit mode")
         return {'FINISHED'}
