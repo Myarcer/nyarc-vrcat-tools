@@ -37,8 +37,15 @@ def save_pose_history_snapshot(armature, snapshot_name="Auto Snapshot", history_
         target_bones = set()
         bones_skipped_identity = 0
         
-        # Ensure we're in pose mode for analysis
+        # Ensure armature is active before switching to pose mode
+        if bpy.context.active_object != armature:
+            bpy.context.view_layer.objects.active = armature
+            bpy.context.view_layer.update()
+        
+        # Ensure we're in pose mode for analysis (go via OBJECT for safe transition)
         if bpy.context.mode != 'POSE':
+            if bpy.context.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.mode_set(mode='POSE')
         
         for pose_bone in armature.pose.bones:

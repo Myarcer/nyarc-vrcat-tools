@@ -44,11 +44,28 @@ except ImportError:
 
 
 def safe_mode_set(target_mode, max_retries=3, delay=0.1):
-    """Safely set Blender mode with retry logic for drawing/rendering states"""
+    """Safely set Blender mode with retry logic for drawing/rendering states.
+    
+    Handles POSE mode correctly by ensuring the active object is an armature first.
+    POSE mode is only valid when the active object is an armature.
+    """
     current_mode = bpy.context.mode
-    if current_mode.split('_')[0].upper() == target_mode.upper():
+    
+    # Normalize mode comparison
+    # EDIT_ARMATURE -> EDIT, PAINT_WEIGHT -> PAINT, POSE -> POSE
+    current_base = current_mode.split('_')[0].upper()
+    target_upper = target_mode.upper()
+    
+    if current_base == target_upper:
         return True
-        
+    
+    # Special case: POSE mode requires armature as active object
+    if target_upper == 'POSE':
+        active_obj = bpy.context.active_object
+        if not active_obj or active_obj.type != 'ARMATURE':
+            print(f"safe_mode_set: Cannot switch to POSE - active object is {active_obj.type if active_obj else 'None'}, not ARMATURE")
+            return False
+    
     for attempt in range(max_retries):
         try:
             bpy.ops.object.mode_set(mode=target_mode)
@@ -66,114 +83,106 @@ def safe_mode_set(target_mode, max_retries=3, delay=0.1):
     return False
 
 
+def _ensure_armature_active(armature_obj):
+    """Ensure the given armature is the active object. Returns True if successful."""
+    if not armature_obj or armature_obj.type != 'ARMATURE':
+        return False
+    if bpy.context.active_object != armature_obj:
+        bpy.context.view_layer.objects.active = armature_obj
+    return True
+
+
 def check_all_bones_inherit_scale_none(armature_obj):
-    """Check if all bones in the armature have inherit_scale set to 'NONE'"""
+    """Check if all bones in the armature have inherit_scale set to 'NONE'.
+    
+    NOTE: Does NOT restore original active object — caller is responsible.
+    """
     if not armature_obj or not armature_obj.data.bones:
         return True, 0, 0  # No bones, consider as all none
     
-    # Save current state
-    current_mode = bpy.context.mode
-    current_active = bpy.context.object
-    
     try:
         # Ensure armature is active
-        if current_active != armature_obj:
-            bpy.context.view_layer.objects.active = armature_obj
+        _ensure_armature_active(armature_obj)
         
-        # Switch to edit mode safely
-        if not current_mode.startswith('EDIT'):
-            if not safe_mode_set('EDIT'):
-                # Fallback - assume not all none to be safe
-                return False, 0, len(armature_obj.data.bones)
+        # Go to OBJECT first (safe neutral mode), then EDIT
+        if bpy.context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
         
         edit_bones = armature_obj.data.edit_bones
         none_count = sum(1 for bone in edit_bones if bone.inherit_scale == 'NONE')
         total_bones = len(edit_bones)
         all_none = (none_count == total_bones)
         
-        # Restore original mode safely
-        if not current_mode.startswith('EDIT'):
-            target_mode = current_mode.split('_')[0]  # Get base mode (OBJECT, POSE, etc.)
-            safe_mode_set(target_mode)
-        
-        # Restore original active object
-        if current_active and current_active != armature_obj:
-            bpy.context.view_layer.objects.active = current_active
+        # Return to OBJECT mode (safe neutral state)
+        bpy.ops.object.mode_set(mode='OBJECT')
                 
         return all_none, none_count, total_bones
         
     except Exception as e:
         print(f"Error checking inherit_scale: {e}")
-        # Restore original state on error
         try:
-            if not current_mode.startswith('EDIT'):
-                target_mode = current_mode.split('_')[0]
-                safe_mode_set(target_mode)
-            if current_active and current_active != armature_obj:
-                bpy.context.view_layer.objects.active = current_active
-        except (RuntimeError, TypeError, AttributeError) as e:
-            # Best effort cleanup - mode/active object restoration may fail
-            print(f"Warning: Failed to restore mode/active object: {e}")
-        
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass
         # Fallback - assume not all none to be safe
         return False, 0, len(armature_obj.data.bones) if armature_obj.data.bones else 0
 
 
 def save_inherit_scale_settings(armature_obj):
-    """Save current inherit_scale settings for all bones"""
+    """Save current inherit_scale settings for all bones.
+    
+    NOTE: Does NOT restore original active object — caller is responsible
+    for ensuring the armature stays active for subsequent operations.
+    """
     if not armature_obj or not armature_obj.data.bones:
         return {}
     
     settings = {}
-    original_mode = bpy.context.mode
-    current_active = bpy.context.object
     
     try:
-        # Ensure armature is active
-        bpy.context.view_layer.objects.active = armature_obj
-        bpy.context.view_layer.update()
+        # Ensure armature is active (required for EDIT_ARMATURE mode)
+        _ensure_armature_active(armature_obj)
         
-        # Switch to edit mode safely
-        if not original_mode.startswith('EDIT'):
-            if not safe_mode_set('EDIT'):
-                print("Warning: Could not switch to EDIT mode to read inherit_scale settings")
-                return {}
+        # Go to OBJECT first (safe neutral mode), then EDIT
+        if bpy.context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
         
         for edit_bone in armature_obj.data.edit_bones:
             settings[edit_bone.name] = edit_bone.inherit_scale
         
-        # Restore original mode safely
-        if not original_mode.startswith('EDIT'):
-            target_mode = original_mode.split('_')[0]
-            safe_mode_set(target_mode)
-        
-        # Restore original active object
-        if current_active and current_active != armature_obj:
-            bpy.context.view_layer.objects.active = current_active
+        # Return to OBJECT mode (safe neutral state — caller decides next mode)
+        bpy.ops.object.mode_set(mode='OBJECT')
         
         return settings
         
     except Exception as e:
         print(f"Error saving inherit_scale settings: {e}")
+        # Try to get back to object mode on error
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass
         return {}
 
 
 def set_all_bones_inherit_scale_none(armature_obj):
-    """Set all bones inherit_scale to 'NONE'"""
+    """Set all bones inherit_scale to 'NONE'.
+    
+    Leaves armature in OBJECT mode after completion.
+    """
     if not armature_obj or not armature_obj.data.bones:
         return False
     
     try:
-        # Store current mode
-        original_mode = bpy.context.mode
-        
         # Ensure armature is active
-        if bpy.context.object != armature_obj:
-            bpy.context.view_layer.objects.active = armature_obj
+        _ensure_armature_active(armature_obj)
         
-        # Switch to edit mode to modify inherit_scale
-        if bpy.context.mode != 'EDIT':
-            bpy.ops.object.mode_set(mode='EDIT')
+        # Go to OBJECT first, then EDIT
+        if bpy.context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
         
         # Set all bones to inherit_scale = 'NONE'
         bones_changed = 0
@@ -182,46 +191,38 @@ def set_all_bones_inherit_scale_none(armature_obj):
                 edit_bone.inherit_scale = 'NONE'
                 bones_changed += 1
         
-        # Restore original mode
-        if original_mode == 'POSE':
-            bpy.ops.object.mode_set(mode='POSE')
-        elif original_mode == 'OBJECT':
-            bpy.ops.object.mode_set(mode='OBJECT')
+        # Return to OBJECT mode
+        bpy.ops.object.mode_set(mode='OBJECT')
         
         print(f"Set {bones_changed} bones to inherit_scale=NONE")
         return True
         
     except Exception as e:
         print(f"Error setting bones to inherit_scale=NONE: {e}")
-        # Try to restore original mode on error
         try:
-            if original_mode == 'POSE':
-                bpy.ops.object.mode_set(mode='POSE')
-            elif original_mode == 'OBJECT':
-                bpy.ops.object.mode_set(mode='OBJECT')
-        except (RuntimeError, TypeError) as e:
-            print(f"Warning: Failed to restore mode to {original_mode}: {e}")
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass
         return False
 
 
 def restore_inherit_scale_settings(armature_obj, saved_settings):
-    """Restore inherit_scale settings for all bones"""
+    """Restore inherit_scale settings for all bones.
+    
+    NOTE: Does NOT restore original active object — caller is responsible.
+    Leaves armature in OBJECT mode after completion.
+    """
     if not armature_obj or not saved_settings:
         return
     
-    original_mode = bpy.context.mode
-    current_active = bpy.context.object
-    
     try:
-        # Ensure armature is active
-        bpy.context.view_layer.objects.active = armature_obj
-        bpy.context.view_layer.update()
+        # Ensure armature is active (required for EDIT_ARMATURE mode)
+        _ensure_armature_active(armature_obj)
         
-        # Switch to edit mode safely
-        if not original_mode.startswith('EDIT'):
-            if not safe_mode_set('EDIT'):
-                print("Warning: Could not switch to EDIT mode to restore inherit_scale settings")
-                return
+        # Go to OBJECT first (safe neutral mode), then EDIT
+        if bpy.context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
         
         restored_count = 0
         for edit_bone in armature_obj.data.edit_bones:
@@ -229,19 +230,17 @@ def restore_inherit_scale_settings(armature_obj, saved_settings):
                 edit_bone.inherit_scale = saved_settings[edit_bone.name]
                 restored_count += 1
         
-        # Restore original mode safely
-        if not original_mode.startswith('EDIT'):
-            target_mode = original_mode.split('_')[0]
-            safe_mode_set(target_mode)
-        
-        # Restore original active object
-        if current_active and current_active != armature_obj:
-            bpy.context.view_layer.objects.active = current_active
+        # Return to OBJECT mode (safe neutral state)
+        bpy.ops.object.mode_set(mode='OBJECT')
         
         print(f"Restored inherit_scale settings for {restored_count} bones")
         
     except Exception as e:
         print(f"Error restoring inherit_scale settings: {e}")
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass
 
 
 def apply_flattened_transforms_to_pose(armature_obj, flattened_data):
@@ -393,6 +392,10 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
     """
     Shared function to execute flattened apply rest pose logic.
     Can be called from any operator.
+    
+    IMPORTANT: All mode transitions go through OBJECT mode as a safe neutral state.
+    The armature is explicitly re-set as active before each step to prevent
+    stale active-object references from corrupting mode switches.
     """
     try:
         print("=== APPLY REST POSE WITH FLATTENING ===")
@@ -400,35 +403,30 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
         # Get props  
         props = getattr(context.scene, 'nyarc_tools_props', None)
         
-        # Ensure armature is selected and active using direct selection
+        # SETUP: Ensure armature is selected and active, start from OBJECT mode
         for obj in bpy.context.selected_objects:
             obj.select_set(False)
         armature.select_set(True)
         context.view_layer.objects.active = armature
-        
-        # Force update to ensure context is correct
         context.view_layer.update()
         
-        # Ensure we're in object mode first, then switch to pose mode
+        # Start from OBJECT mode (safe neutral state)
         if context.mode != 'OBJECT':
             bpy.ops.object.mode_set(mode='OBJECT')
-            
-        # Now switch to pose mode
-        bpy.ops.object.mode_set(mode='POSE')
         
-        # AUTO-SAVE POSE HISTORY before flattening
-        if POSE_HISTORY_AVAILABLE and props and props.pose_history_enabled:
-            snapshot_name = "Pose"
-            success = save_pose_history_snapshot(armature, snapshot_name, "before_flattened_apply_rest")
-            if success:
-                print(f"Pose History: Auto-saved snapshot before flattened apply rest")
-                if operator_self:
-                    operator_self.report({'INFO'}, "Pose history auto-saved before applying rest pose")
+        # Switch to pose mode for reading transforms
+        bpy.ops.object.mode_set(mode='POSE')
 
         # STEP 1: Save original inherit_scale settings
+        # (save_inherit_scale_settings goes POSE->OBJECT->EDIT->OBJECT internally)
         print("STEP 1: Saving original inherit_scale settings...")
+        _ensure_armature_active(armature)
         original_inherit_settings = save_inherit_scale_settings(armature)
         print(f"Saved inherit_scale settings for {len(original_inherit_settings)} bones")
+        
+        # Re-assert armature active + POSE mode after save_inherit_scale_settings
+        _ensure_armature_active(armature)
+        bpy.ops.object.mode_set(mode='POSE')
         
         # STEP 2: Identify bones that need transforms
         print("STEP 2: Identifying bones with pose transforms...")
@@ -458,7 +456,9 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
             return {'FINISHED'}
         
         # STEP 3: Calculate flattened transforms
+        # (flatten_bone_transforms_for_save does its own mode switching internally)
         print("STEP 3: Calculating flattened transforms...")
+        _ensure_armature_active(armature)
         flattened_data = flatten_bone_transforms_for_save(armature, target_bones, statistical_bones)
         
         if not flattened_data:
@@ -468,14 +468,30 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
         
         print(f"Calculated flattened transforms for {len(flattened_data)} bones")
         
+        # AUTO-SAVE POSE HISTORY AFTER flattening calculation (saves correct flattened data)
+        # Must happen BEFORE we modify inherit_scale or apply transforms
+        if POSE_HISTORY_AVAILABLE and props and props.pose_history_enabled:
+            _ensure_armature_active(armature)
+            if context.mode != 'POSE':
+                if context.mode != 'OBJECT':
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                bpy.ops.object.mode_set(mode='POSE')
+            snapshot_name = "Pose"
+            success = save_pose_history_snapshot(armature, snapshot_name, "before_flattened_apply_rest")
+            if success:
+                print(f"Pose History: Auto-saved snapshot before flattened apply rest")
+                if operator_self:
+                    operator_self.report({'INFO'}, "Pose history auto-saved before applying rest pose")
+        
         # STEP 4: Set all bones to inherit_scale=NONE temporarily  
         print("STEP 4: Setting all bones to inherit_scale=NONE temporarily...")
-        # Set inherit_scale manually with safe mode switching
-        if not context.mode.startswith('EDIT'):
-            if not safe_mode_set('EDIT'):
-                if operator_self:
-                    operator_self.report({'ERROR'}, "Could not switch to EDIT mode for inherit_scale setup")
-                return {'CANCELLED'}
+        # Re-assert armature active before mode switching
+        _ensure_armature_active(armature)
+        
+        # Go to OBJECT -> EDIT (safe transition)
+        if context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='EDIT')
         
         temp_none_count = 0
         for edit_bone in armature.data.edit_bones:
@@ -485,11 +501,10 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
         
         print(f"Set {temp_none_count} bones to inherit_scale=NONE temporarily")
             
-        # Switch back to pose mode safely
-        if not safe_mode_set('POSE'):
-            if operator_self:
-                operator_self.report({'ERROR'}, "Could not switch to POSE mode after inherit_scale setup")
-            return {'CANCELLED'}
+        # Switch to POSE mode via OBJECT (safe transition)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        _ensure_armature_active(armature)
+        bpy.ops.object.mode_set(mode='POSE')
         
         # STEP 5: Apply flattened transforms to pose
         print("STEP 5: Applying flattened transforms to pose...")
@@ -558,10 +573,13 @@ def execute_flattened_apply_rest_pose(context, armature, operator_self=None):
         
         # STEP 7: Restore original inherit_scale settings
         print("STEP 7: Restoring original inherit_scale settings...")
+        _ensure_armature_active(armature)
         restore_inherit_scale_settings(armature, original_inherit_settings)
         
         # Switch to object mode safely and update props
-        safe_mode_set('OBJECT')
+        _ensure_armature_active(armature)
+        if context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
         if props:
             props.bone_editing_active = False
         
