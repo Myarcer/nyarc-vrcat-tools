@@ -138,7 +138,15 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
         
         row = parent.row(align=True)
         
-        # Edit button (left side, compact)
+        # Slider (takes most of the space)
+        slider_sub = row.row(align=True)
+        if props.shapekey_sync_enabled:
+            slider_sub.prop(key_block, "value", text=key_name, slider=True)
+        else:
+            slider_sub.enabled = False
+            slider_sub.prop(key_block, "value", text=key_name, slider=True)
+        
+        # Edit button (right side, compact)
         if edit_target:
             edit_sub = row.row(align=True)
             edit_sub.scale_x = 0.35
@@ -149,14 +157,6 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
             )
             op.target_name = edit_target.name
             op.shape_key_name = key_name
-        
-        # Slider (takes remaining space)
-        slider_sub = row.row(align=True)
-        if props.shapekey_sync_enabled:
-            slider_sub.prop(key_block, "value", text=key_name, slider=True)
-        else:
-            slider_sub.enabled = False
-            slider_sub.prop(key_block, "value", text=key_name, slider=True)
     
     # Show sync status summary
     if len(target_objects) > 0:

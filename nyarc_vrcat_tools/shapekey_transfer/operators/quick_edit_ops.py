@@ -52,15 +52,9 @@ class MESH_OT_enter_shapekey_edit(Operator):
 
     @classmethod
     def poll(cls, context):
-        props = getattr(context.scene, 'nyarc_tools_props', None)
-        if not props:
-            return False
-        # Allow if we have operator params OR a target mesh set in props
-        target = props.shapekey_edit_target_mesh
-        if target and target.data.shape_keys:
-            return True
-        # Also allow - operator params will be checked in execute
-        return True
+        # Always allow - target_name/shape_key_name are passed as operator params
+        # and validated in execute()
+        return getattr(context.scene, 'nyarc_tools_props', None) is not None
 
     def execute(self, context):
         props = context.scene.nyarc_tools_props
