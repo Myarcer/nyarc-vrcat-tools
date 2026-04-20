@@ -29,53 +29,164 @@ def _get_mesh_children_recursive(armature_obj, scene):
 
 
 # Bootstrap script written into the temp file's directory and passed to the
-# new Blender process via --python. It runs once after the file loads and
-# renames every datablock to strip trailing .NNN suffixes.
+# new Blender process via --python. After the file loads it:
+#   1. Links every orphan object to the active scene's master collection
+#   2. Restores parent relationships
+#   3. Renames every datablock to strip trailing .NNN suffixes
+#   4. Saves the .blend so re-opens are clean
+#   5. Writes a detailed log next to the .blend file
 BOOTSTRAP_SCRIPT = r'''
 import bpy
+import os
 import re
+import sys
+import traceback
 
-pattern = re.compile(r"\.\d+$")
+LOG_PATH = os.path.join(os.path.dirname(bpy.data.filepath), "clean_export_log.txt")
+_log_lines = []
 
-def strip_collection(collection):
-    desired = {}
-    for item in collection:
-        new_name = pattern.sub("", item.name)
-        if new_name != item.name:
-            desired[item] = new_name
-    for item, new_name in desired.items():
-        if new_name not in collection:
-            item.name = new_name
+def log(msg):
+    line = f"[Nyarc Clean Export] {msg}"
+    _log_lines.append(line)
+    print(line)
 
-for coll in (
-    bpy.data.meshes,
-    bpy.data.armatures,
-    bpy.data.materials,
-    bpy.data.shape_keys,
-    bpy.data.actions,
-    bpy.data.objects,
-    bpy.data.collections,
-    bpy.data.scenes,
-):
+def flush_log():
     try:
-        strip_collection(coll)
+        with open(LOG_PATH, "w", encoding="utf-8") as f:
+            f.write("\n".join(_log_lines) + "\n")
     except Exception as e:
-        print(f"[Nyarc Clean Export] Skipped {coll}: {e}")
+        print(f"[Nyarc Clean Export] Failed to write log: {e}")
 
-for obj in bpy.data.objects:
-    if obj.type == "MESH":
-        for vg in obj.vertex_groups:
-            new_name = pattern.sub("", vg.name)
-            if new_name != vg.name and new_name not in obj.vertex_groups:
-                vg.name = new_name
+try:
+    log(f"Bootstrap started. File: {bpy.data.filepath}")
+    log(f"Blender version: {bpy.app.version_string}")
 
-for arm in bpy.data.armatures:
-    for bone in arm.bones:
-        new_name = pattern.sub("", bone.name)
-        if new_name != bone.name and new_name not in arm.bones:
-            bone.name = new_name
+    # --- Stats before ---
+    log(f"Pre-link counts: objects={len(bpy.data.objects)} "
+        f"meshes={len(bpy.data.meshes)} armatures={len(bpy.data.armatures)} "
+        f"materials={len(bpy.data.materials)} scenes={len(bpy.data.scenes)}")
 
-print("[Nyarc Clean Export] Bootstrap rename complete.")
+    scene = bpy.context.scene
+    log(f"Active scene: '{scene.name}'")
+    master_coll = scene.collection
+
+    # --- 1. Link orphan objects to master collection ---
+    linked_count = 0
+    already_count = 0
+    for obj in list(bpy.data.objects):
+        if obj.name not in master_coll.objects and not any(
+            obj.name in c.objects for c in bpy.data.collections
+        ):
+            try:
+                master_coll.objects.link(obj)
+                linked_count += 1
+                log(f"  Linked '{obj.name}' ({obj.type}) to scene")
+            except Exception as e:
+                log(f"  FAILED to link '{obj.name}': {e}")
+        else:
+            already_count += 1
+    log(f"Linking done: {linked_count} newly linked, {already_count} already in a collection")
+
+    # --- 2. Strip suffixes ---
+    pattern = re.compile(r"\.\d+$")
+
+    def strip_collection(coll, label):
+        renamed = 0
+        skipped = 0
+        # Build a set of all current names BEFORE any rename so we don't
+        # accidentally consider a name "free" that another item is about to take.
+        existing = {item.name for item in coll}
+        targets = []
+        for item in coll:
+            new_name = pattern.sub("", item.name)
+            if new_name != item.name:
+                targets.append((item, new_name))
+        for item, new_name in targets:
+            if new_name in existing and new_name != item.name:
+                log(f"  [{label}] SKIP '{item.name}' -> '{new_name}' (collision)")
+                skipped += 1
+                continue
+            existing.discard(item.name)
+            item.name = new_name
+            existing.add(item.name)
+            log(f"  [{label}] '{item.name}' (was suffix-stripped)")
+            renamed += 1
+        return renamed, skipped
+
+    total_renamed = 0
+    for coll, label in (
+        (bpy.data.meshes, "mesh"),
+        (bpy.data.armatures, "armature_data"),
+        (bpy.data.materials, "material"),
+        (bpy.data.actions, "action"),
+        (bpy.data.objects, "object"),
+        (bpy.data.collections, "collection"),
+        (bpy.data.scenes, "scene"),
+    ):
+        try:
+            r, s = strip_collection(coll, label)
+            log(f"{label}: renamed={r} skipped={s}")
+            total_renamed += r
+        except Exception as e:
+            log(f"{label}: ERROR {e}")
+            log(traceback.format_exc())
+
+    # Shape key (Key) datablocks need separate handling because their name
+    # often references the mesh name pattern
+    try:
+        shape_key_renamed = 0
+        for key in bpy.data.shape_keys:
+            new_name = pattern.sub("", key.name)
+            if new_name != key.name:
+                key.name = new_name
+                shape_key_renamed += 1
+        log(f"shape_keys: renamed={shape_key_renamed}")
+    except Exception as e:
+        log(f"shape_keys: ERROR {e}")
+
+    # Vertex groups
+    vg_renamed = 0
+    for obj in bpy.data.objects:
+        if obj.type == "MESH":
+            existing = {vg.name for vg in obj.vertex_groups}
+            for vg in obj.vertex_groups:
+                new_name = pattern.sub("", vg.name)
+                if new_name != vg.name and new_name not in existing:
+                    existing.discard(vg.name)
+                    vg.name = new_name
+                    existing.add(new_name)
+                    vg_renamed += 1
+    log(f"vertex_groups renamed: {vg_renamed}")
+
+    # Bones
+    bone_renamed = 0
+    for arm in bpy.data.armatures:
+        existing = {b.name for b in arm.bones}
+        for bone in arm.bones:
+            new_name = pattern.sub("", bone.name)
+            if new_name != bone.name and new_name not in existing:
+                existing.discard(bone.name)
+                bone.name = new_name
+                existing.add(new_name)
+                bone_renamed += 1
+    log(f"bones renamed: {bone_renamed}")
+
+    log(f"TOTAL datablock renames: {total_renamed}")
+
+    # --- 3. Save the cleaned file ---
+    try:
+        bpy.ops.wm.save_mainfile()
+        log(f"Saved cleaned file: {bpy.data.filepath}")
+    except Exception as e:
+        log(f"Save failed: {e}")
+
+    log("Bootstrap complete.")
+
+except Exception as e:
+    log(f"FATAL: {e}")
+    log(traceback.format_exc())
+finally:
+    flush_log()
 '''
 
 
@@ -175,10 +286,15 @@ class EXPORT_OT_create_clean_scene(Operator):
         suffix_count = sum(
             1 for obj in all_objects if strip_numeric_suffix(obj.name) != obj.name
         )
+        log_path = os.path.join(temp_dir, "clean_export_log.txt")
+        # Print to console too so user sees it without opening the file
+        print(f"[Nyarc Clean Export] Wrote {len(datablocks)} datablocks to: {temp_blend}")
+        print(f"[Nyarc Clean Export] Bootstrap log will be at: {log_path}")
+        print(f"[Nyarc Clean Export] Launching: {blender_exe} {temp_blend}")
         self.report(
             {'INFO'},
-            f"Launched new Blender with clean export ({len(all_objects)} objects, "
-            f"{suffix_count} suffixes will be stripped). File: {temp_blend}",
+            f"Launched new Blender ({len(all_objects)} objs, {len(datablocks)} datablocks, "
+            f"{suffix_count} suffixes). Log: {log_path}",
         )
         return {'FINISHED'}
 
