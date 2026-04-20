@@ -889,7 +889,21 @@ class NyarcToolsProperties(PropertyGroup):
         description="Show/hide Mirror Flip Tools section",
         default=True
     )
-    
+
+    # Clean Export Properties
+    clean_export_show_ui: BoolProperty(
+        name="Show Clean Export",
+        description="Show/hide Clean Export section",
+        default=True
+    )
+
+    clean_export_armature: PointerProperty(
+        name="Armature",
+        description="Armature to copy into a clean export scene",
+        type=Object,
+        poll=armature_poll,
+    )
+
     # Precision Correction Properties
     apply_precision_correction: BoolProperty(
         name="Apply Precision Correction",

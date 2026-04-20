@@ -16,6 +16,7 @@ bone_transforms_module, BONE_TRANSFORMS_AVAILABLE = try_import_module('nyarc_vrc
 bone_transform_saver_module, BONE_TRANSFORM_SAVER_AVAILABLE = try_import_module('nyarc_vrcat_tools.bone_transform_saver', 'bone_transform_saver')
 details_module, DETAILS_AVAILABLE = try_import_module('nyarc_vrcat_tools.details_companion_tools', 'details_companion_tools')
 mirror_flip_module, MIRROR_FLIP_AVAILABLE = try_import_module('nyarc_vrcat_tools.mirror_flip', 'mirror_flip')
+clean_export_module, CLEAN_EXPORT_AVAILABLE = try_import_module('nyarc_vrcat_tools.clean_export', 'clean_export')
 
 def register_modules():
     """Register all available modules"""
@@ -78,6 +79,16 @@ def register_modules():
             import traceback
             traceback.print_exc()
 
+    # Register clean export module
+    if CLEAN_EXPORT_AVAILABLE and hasattr(clean_export_module, 'register_module'):
+        try:
+            clean_export_module.register_module()
+            print("[OK] Clean Export module registered")
+        except Exception as e:
+            print(f"[ERROR] Failed to register Clean Export module: {e}")
+            import traceback
+            traceback.print_exc()
+
 def unregister_modules():
     """Unregister all modules"""
     print("[UNREGISTER] Unregistering Nyarc VRCat Tools modules...")
@@ -85,6 +96,13 @@ def unregister_modules():
     # NOTE: Bone Transform Saver unregistration disabled - handled by bone_transforms module
     print("[DEBUG] Bone Transform Saver unregistration disabled")
     
+    # Unregister clean export module
+    if CLEAN_EXPORT_AVAILABLE and hasattr(clean_export_module, 'unregister_module'):
+        try:
+            clean_export_module.unregister_module()
+        except:
+            pass
+
     # Unregister mirror flip module
     if MIRROR_FLIP_AVAILABLE and hasattr(mirror_flip_module, 'unregister_module'):
         try:
@@ -159,10 +177,20 @@ def draw_modules(layout, context):
         mirror_flip_header = mirror_flip_box.row()
         mirror_flip_header.label(text="Mirror Flip Tools", icon='MOD_MIRROR')
         mirror_flip_header.prop(props, "mirror_flip_show_ui", text="", icon='TRIA_DOWN' if props.mirror_flip_show_ui else 'TRIA_RIGHT')
-        
+
         if props.mirror_flip_show_ui:
             draw_mirror_flip_ui(mirror_flip_box, context, props)
-    
+
+    # Clean Export UI
+    if CLEAN_EXPORT_AVAILABLE:
+        clean_export_box = layout.box()
+        clean_export_header = clean_export_box.row()
+        clean_export_header.label(text="Clean Export", icon='EXPORT')
+        clean_export_header.prop(props, "clean_export_show_ui", text="", icon='TRIA_DOWN' if props.clean_export_show_ui else 'TRIA_RIGHT')
+
+        if props.clean_export_show_ui:
+            clean_export_module.draw_ui(clean_export_box, context)
+
     # Details & Companion Tools UI (standalone module at bottom)
     if DETAILS_AVAILABLE:
         details_module.draw_details_ui(layout, context, props)
