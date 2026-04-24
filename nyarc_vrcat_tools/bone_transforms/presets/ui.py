@@ -6,6 +6,7 @@ import json
 import os
 from .manager import get_available_presets
 from ..operators.loader import preset_has_precision_data
+from .merge import draw_merge_ui
 
 def has_precision_capable_presets(visible_presets):
     """Check if any of the visible presets have precision data"""
@@ -175,6 +176,16 @@ def draw_presets_ui(layout, context, props):
             folder_row = preset_box.row()
             folder_row.scale_y = 0.9
             folder_row.operator("wm.open_presets_folder", text="Open Presets Folder", icon='FILE_FOLDER')
+
+            # Merge Presets sub-section (combine multiple .json into one)
+            preset_box.separator()
+            try:
+                draw_merge_ui(preset_box, context, props)
+            except Exception as merge_err:
+                err_box = preset_box.box()
+                err_box.label(text="Merge Presets UI error", icon='ERROR')
+                err_box.label(text=str(merge_err))
+                print(f"[ERROR] Merge UI: {merge_err}")
             
             # Usage info
             info_box = preset_box.box()

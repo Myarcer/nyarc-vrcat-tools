@@ -54,6 +54,10 @@ def register_module():
     if PRESETS_AVAILABLE and hasattr(presets_module, 'SCROLL_CLASSES'):
         all_classes.extend(presets_module.SCROLL_CLASSES)
         print(f"[DEBUG] Added {len(presets_module.SCROLL_CLASSES)} scroll classes")
+
+    if PRESETS_AVAILABLE and hasattr(presets_module, 'MERGE_CLASSES'):
+        all_classes.extend(presets_module.MERGE_CLASSES)
+        print(f"[DEBUG] Added {len(presets_module.MERGE_CLASSES)} merge classes")
     
     print(f"[DEBUG] Total classes to register: {len(all_classes)}")
     
@@ -67,7 +71,16 @@ def register_module():
     
     # Store for unregistration
     MODULE_INFO['classes'] = all_classes
-    
+
+    # Register scene-level properties for the merge feature (must come AFTER
+    # PresetMergeItem class is registered).
+    if PRESETS_AVAILABLE and hasattr(presets_module, 'register_merge_props'):
+        try:
+            presets_module.register_merge_props()
+            print("[OK] Registered preset-merge scene properties")
+        except Exception as e:
+            print(f"[ERROR] Failed to register preset-merge props: {e}")
+
     # Also register with registry for tracking
     registry = ModuleRegistry.get_instance()
     registry.register_module(MODULE_INFO)
@@ -75,7 +88,15 @@ def register_module():
 def unregister_module():
     """Unregister the bone transforms module"""
     import bpy
-    
+
+    # Unregister scene-level merge properties FIRST (before their PropertyGroup
+    # class gets unregistered below).
+    if PRESETS_AVAILABLE and hasattr(presets_module, 'unregister_merge_props'):
+        try:
+            presets_module.unregister_merge_props()
+        except Exception as e:
+            print(f"[ERROR] Failed to unregister preset-merge props: {e}")
+
     # Unregister classes directly from Blender
     if 'classes' in MODULE_INFO:
         for cls in reversed(MODULE_INFO['classes']):
