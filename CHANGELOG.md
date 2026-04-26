@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## v0.2.9 (2026-04-26)
+
+### Bug Fixes
+* fix(shapekey-editor): clean edit workflow + active button highlight — edit button now highlights (depress) when active, entering/exiting edit resets all shapekeys to 0 on source + all targets, source slider now reflects 1.0 when editing
+* fix(shapekey-editor): edit button toggles exit on second press — pressing active edit button again exits and resets key to 0
+* fix(shapekey-editor): reset ALL shapekeys to 0 on edit enter/exit, not just previously active one
+* fix(clean-export): force-unhide objects before FBX select_set — hide_viewport / hide_select / per-view-layer hide all caused select_set(True) to silently drop meshes from export
+* fix(clean-export): match CATS FBX settings — mesh_smooth_type='OFF' fixes broken blendshape normals in Unity; correct axis, armature_nodetype='NULL', use_tspace=False; mesh discovery now also finds meshes linked via Armature modifier without parent relationship
+* fix: version label in panel header was hardcoded at v0.2.7
+
 ## v0.0.1 (2026-03-04)
 
 ### New Features
