@@ -150,6 +150,18 @@ def draw_ui(layout, context):
         layout.label(text="New scene name will be:", icon='INFO')
         layout.label(text=f"  {strip_numeric_suffix(armature.name)}_Export")
 
+        layout.separator(factor=0.6)
+
+        # Direct FBX export button (CATS-style: strips names in-place, exports, restores)
+        row = layout.row()
+        row.scale_y = 1.4
+        row.operator(
+            "export.nyarc_clean_fbx",
+            text="Export Clean FBX Directly",
+            icon='EXPORT'
+        )
+        layout.label(text="Exports FBX with clean names (no new window).", icon='INFO')
+
     else:
         layout.separator(factor=0.5)
         layout.label(text="Select an armature above to preview.", icon='INFO')

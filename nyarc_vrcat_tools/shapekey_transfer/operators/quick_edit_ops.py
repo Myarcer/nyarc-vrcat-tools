@@ -94,23 +94,33 @@ class MESH_OT_enter_shapekey_edit(Operator):
             return {'CANCELLED'}
         active_key_name = active_key.name
 
-        # Restore previous shape key value if switching keys while in edit/sculpt
-        was_in_edit = context.mode in ('EDIT_MESH', 'SCULPT')
-        if was_in_edit and props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
+        # Deactivate previously-edited key: reset to 0.0 on both target and source
+        if props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
             prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
             if prev_target and prev_target.data.shape_keys:
                 prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
                 if prev_key:
-                    prev_key.value = props.shapekey_edit_prev_value
+                    prev_key.value = 0.0
+            # Also reset on source so the slider reflects 0.0 and sync doesn't fight us
+            source_obj = props.shapekey_source_object
+            if source_obj and source_obj.data.shape_keys:
+                source_prev_key = source_obj.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
+                if source_prev_key:
+                    source_prev_key.value = 0.0
 
-        # Save current value before we set it to 1
-        props.shapekey_edit_prev_value = active_key.value
+        # Track which key is now being edited
+        props.shapekey_edit_prev_value = 0.0  # always restore to 0 on exit/switch
         props.shapekey_edit_prev_key_name = active_key_name
         props.shapekey_edit_prev_target_name = target_mesh.name
 
-        # Set shape key value to 1 for editing
+        # Set shape key value to 1 for editing (target and source so slider shows 1.0)
         active_key.value = 1.0
         target_mesh.active_shape_key_index = active_sk_index
+        source_obj = props.shapekey_source_object
+        if source_obj and source_obj.data.shape_keys:
+            source_active_key = source_obj.data.shape_keys.key_blocks.get(active_key_name)
+            if source_active_key:
+                source_active_key.value = 1.0
 
         # Ensure we're in object mode first
         if context.mode != 'OBJECT':
@@ -164,14 +174,19 @@ class MESH_OT_exit_shapekey_edit(Operator):
     def execute(self, context):
         props = context.scene.nyarc_tools_props
         
-        # Restore previous shape key value
+        # Reset active key to 0.0 on both target and source
         if props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
             prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
             if prev_target and prev_target.data.shape_keys:
                 prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
                 if prev_key:
-                    prev_key.value = props.shapekey_edit_prev_value
-        
+                    prev_key.value = 0.0
+            source_obj = props.shapekey_source_object
+            if source_obj and source_obj.data.shape_keys:
+                source_key = source_obj.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
+                if source_key:
+                    source_key.value = 0.0
+
         # Clear tracking
         props.shapekey_edit_prev_key_name = ""
         props.shapekey_edit_prev_target_name = ""
