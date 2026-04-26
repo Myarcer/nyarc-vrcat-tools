@@ -345,6 +345,10 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
         datablock_renames = []
         processed_ids = set()
 
+        # vis_overrides: [(obj, hide_viewport, hide_select, was_hidden_vl), ...]
+        # Saved so we can restore after export even if export raises an exception.
+        vis_overrides = []
+
         def try_rename_datablock(item, global_coll):
             if id(item) in processed_ids:
                 return
@@ -401,12 +405,35 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
             for obj in all_objects:
                 try_rename_datablock(obj, bpy.data.objects)
 
-            # 5. Select only export objects
+            # 5. Select only export objects.
+            # Temporarily clear hide_viewport / hide_select / per-vl hide so that
+            # select_set(True) doesn't silently no-op for objects the user hid or
+            # made non-selectable in the outliner.
             prev_active = context.view_layer.objects.active
             prev_selected = [(o, o.select_get()) for o in context.scene.objects]
+
+            for obj in all_objects:
+                old_vp = obj.hide_viewport
+                old_sel = obj.hide_select
+                try:
+                    old_vl = obj.hide_get()
+                except Exception:
+                    old_vl = False
+                obj.hide_viewport = False
+                obj.hide_select = False
+                if old_vl:
+                    try:
+                        obj.hide_set(False)
+                    except Exception:
+                        pass
+                vis_overrides.append((obj, old_vp, old_sel, old_vl))
+
             bpy.ops.object.select_all(action='DESELECT')
             for obj in all_objects:
-                obj.select_set(True)
+                try:
+                    obj.select_set(True)
+                except RuntimeError:
+                    pass  # object excluded from view layer — skip gracefully
             context.view_layer.objects.active = source_armature
 
             # 6. Export FBX (CATS-compatible defaults)
@@ -451,6 +478,16 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
             return {'FINISHED'}
 
         finally:
+            # Restore visibility/selectability overrides
+            for obj, old_vp, old_sel, old_vl in vis_overrides:
+                try:
+                    obj.hide_viewport = old_vp
+                    obj.hide_select = old_sel
+                    if old_vl:
+                        obj.hide_set(True)
+                except Exception:
+                    pass
+
             # Restore datablock renames in reverse: free clean name first, then restore blocker
             for item, old, blocker_item, blocker_old in reversed(datablock_renames):
                 try:
