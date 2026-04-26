@@ -174,10 +174,15 @@ def _draw_shape_key_rows(parent, context, props, source_obj, target_objects):
         
         # Edit button (right side, separate bounding box)
         if edit_target:
+            is_active_edit = (
+                props.shapekey_edit_prev_key_name == key_name and
+                props.shapekey_edit_prev_target_name == edit_target.name
+            )
             op = row.operator(
                 "mesh.enter_shapekey_edit",
                 text="",
                 icon=mode_icon,
+                depress=is_active_edit,
             )
             op.target_name = edit_target.name
             op.shape_key_name = key_name

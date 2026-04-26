@@ -6,6 +6,21 @@ from bpy.props import StringProperty, EnumProperty
 from bpy.types import Operator
 
 
+def _reset_all_shapekeys(props):
+    """Reset all non-Basis shapekeys to 0.0 on source and all target objects."""
+    objects = []
+    if props.shapekey_source_object:
+        objects.append(props.shapekey_source_object)
+    if props.shapekey_target_object:
+        objects.append(props.shapekey_target_object)
+    objects.extend(props.get_target_objects_list())
+    for obj in objects:
+        if obj and obj.data.shape_keys:
+            for kb in obj.data.shape_keys.key_blocks:
+                if kb.name != "Basis":
+                    kb.value = 0.0
+
+
 class MESH_OT_set_quick_edit_target(Operator):
     """Set the quick edit target mesh by name (used by quick-select buttons)"""
     bl_idname = "mesh.set_quick_edit_target"
@@ -94,23 +109,33 @@ class MESH_OT_enter_shapekey_edit(Operator):
             return {'CANCELLED'}
         active_key_name = active_key.name
 
-        # Restore previous shape key value if switching keys while in edit/sculpt
-        was_in_edit = context.mode in ('EDIT_MESH', 'SCULPT')
-        if was_in_edit and props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
-            prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
-            if prev_target and prev_target.data.shape_keys:
-                prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
-                if prev_key:
-                    prev_key.value = props.shapekey_edit_prev_value
+        # Toggle: pressing the same edit button again exits edit mode
+        if (props.shapekey_edit_prev_key_name == active_key_name and
+                props.shapekey_edit_prev_target_name == target_mesh.name):
+            _reset_all_shapekeys(props)
+            props.shapekey_edit_prev_key_name = ""
+            props.shapekey_edit_prev_target_name = ""
+            if context.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+            self.report({'INFO'}, f"Exited edit for '{active_key_name}'")
+            return {'FINISHED'}
 
-        # Save current value before we set it to 1
-        props.shapekey_edit_prev_value = active_key.value
+        # Reset ALL shapekeys to 0 on source + all targets before activating the new one
+        _reset_all_shapekeys(props)
+
+        # Track which key is now being edited
+        props.shapekey_edit_prev_value = 0.0
         props.shapekey_edit_prev_key_name = active_key_name
         props.shapekey_edit_prev_target_name = target_mesh.name
 
-        # Set shape key value to 1 for editing
+        # Set active key to 1.0 on the edit target and on source (so slider reflects it)
         active_key.value = 1.0
         target_mesh.active_shape_key_index = active_sk_index
+        source_obj = props.shapekey_source_object
+        if source_obj and source_obj.data.shape_keys:
+            source_active_key = source_obj.data.shape_keys.key_blocks.get(active_key_name)
+            if source_active_key:
+                source_active_key.value = 1.0
 
         # Ensure we're in object mode first
         if context.mode != 'OBJECT':
@@ -164,14 +189,9 @@ class MESH_OT_exit_shapekey_edit(Operator):
     def execute(self, context):
         props = context.scene.nyarc_tools_props
         
-        # Restore previous shape key value
-        if props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
-            prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
-            if prev_target and prev_target.data.shape_keys:
-                prev_key = prev_target.data.shape_keys.key_blocks.get(props.shapekey_edit_prev_key_name)
-                if prev_key:
-                    prev_key.value = props.shapekey_edit_prev_value
-        
+        # Reset ALL shapekeys to 0 on source + all targets
+        _reset_all_shapekeys(props)
+
         # Clear tracking
         props.shapekey_edit_prev_key_name = ""
         props.shapekey_edit_prev_target_name = ""
