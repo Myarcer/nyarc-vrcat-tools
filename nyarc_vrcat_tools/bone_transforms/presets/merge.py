@@ -1,23 +1,36 @@
 # Preset Merge Module
-# Combines multiple existing JSON presets into a single new preset.
+# Combines multiple existing JSON presets into a single new preset that emulates
+# the sequential workflow: load preset i -> Apply As Rest -> load preset i+1 -> ...
 #
-# MATH NOTE: Presets store ABSOLUTE pose-bone transforms (location, rotation,
-# scale). The loader directly assigns these values without composition.
-# Therefore manually loading preset A then preset B is equivalent, per bone,
-# to: bones unique to A keep A's values, bones in B (whether or not in A) take
-# B's values. The merge below is exactly that ordered last-write-wins dict
-# merge, so a merged preset reproduces sequential application bit-for-bit on
-# the standard pose path.
+# MATH NOTE: Each preset stores ABSOLUTE pose-bone local TRS in the bone's
+# CURRENT rest frame at the time of application. Apply-As-Rest does two things:
+#   1) Bakes the pose into the bone's rest. For root bones the head moves by
+#      the local 'location' (rotated by the current rest orientation); for child
+#      bones the head also moves with the parent's baked transform.
+#   2) IMPORTANT: Bone scale is absorbed into the bone's edit-mode length and
+#      the pose-bone's local scale is reset to (1, 1, 1). Edit-mode bones do not
+#      carry an explicit scale matrix in Blender; only head/tail/roll. This means
+#      the *next* preset's 'location' is interpreted in an identity-scale local
+#      frame -- it is NOT pre-multiplied by previously-applied scales.
 #
-# Precision/diff_export presets are intentionally REJECTED. Their precision
-# corrections are computed against the rest pose at export time, and sequential
-# application mutates the rest pose between applies (via apply-as-rest). A
-# single merged file cannot replicate that pipeline, so merging would silently
-# diverge from manual sequential application.
+# Therefore naive 4x4 matrix product (M_1 @ M_2 @ ... @ M_n) is INCORRECT: it
+# bakes the previous step's scale into the next step's translation. The correct
+# composition for the flattened (inherit_scale=NONE) workflow is:
+#
+#   R_total = R_1 * R_2 * ... * R_n           (quaternion chain)
+#   T_total = sum_i (R_1 * ... * R_{i-1}) @ loc_i   (no scale terms)
+#   S_total = S_1 * S_2 * ... * S_n           (component-wise product)
+#
+# In words: rotations and scales accumulate independently; translations sum in
+# the accumulated rotation frame, with NO scale pre-multiplication.
+#
+# Precision/diff_export presets are still REJECTED; they depend on rest-pose
+# state in ways the static JSON cannot encode.
 
 import bpy
 import copy
 import os
+from mathutils import Matrix, Vector, Quaternion
 from bpy.types import Operator, PropertyGroup
 from bpy.props import StringProperty, IntProperty, EnumProperty, CollectionProperty
 
@@ -27,6 +40,58 @@ from .manager import (
     save_preset_to_file,
     get_presets_directory,
 )
+
+
+def _read_step(bone_data):
+    """Pull (loc, rot, scl) out of a preset bone entry, with safe defaults."""
+    loc = Vector(bone_data.get("location", (0.0, 0.0, 0.0)))
+    rot = Quaternion(bone_data.get("rotation_quaternion", (1.0, 0.0, 0.0, 0.0)))
+    scl = Vector(bone_data.get("scale", (1.0, 1.0, 1.0)))
+    return loc, rot, scl
+
+
+def _compose_apply_rest_chain(steps):
+    """Compose a list of (loc, rot, scl) steps as sequential apply-as-rest.
+
+    Returns (loc_total, rot_total, scl_total) such that applying the resulting
+    TRS once and then apply-as-rest is equivalent (in flattened/inherit_scale=NONE
+    context) to applying every step in order with apply-as-rest in between.
+
+    Key correctness rule: scale does NOT carry into subsequent translations,
+    because apply-as-rest absorbs scale into bone length and resets pose scale
+    to identity before the next step's location is interpreted.
+    """
+    rot_total = Quaternion((1.0, 0.0, 0.0, 0.0))
+    loc_total = Vector((0.0, 0.0, 0.0))
+    scl_total = Vector((1.0, 1.0, 1.0))
+    for loc_i, rot_i, scl_i in steps:
+        # Translation accumulates in the frame rotated by all preceding rotations.
+        # No scale pre-multiplication -- see module docstring.
+        loc_total = loc_total + (rot_total @ loc_i)
+        # Rotation chain.
+        rot_total = rot_total @ rot_i
+        # Component-wise scale product (inherit_scale=NONE -> independent axes).
+        scl_total = Vector((
+            scl_total.x * scl_i.x,
+            scl_total.y * scl_i.y,
+            scl_total.z * scl_i.z,
+        ))
+    return loc_total, rot_total, scl_total
+
+
+def _step_to_bone_data(loc, rot, scl, template):
+    """Format a composed TRS triple back into a preset bone entry.
+
+    Preserves any non-TRS keys (e.g. inherit_scale) from the most recent
+    template seen for the bone.
+    """
+    out = copy.deepcopy(template) if isinstance(template, dict) else {}
+    out["location"] = [loc.x, loc.y, loc.z]
+    # Normalize quaternion just in case of accumulated drift.
+    rot_n = rot.normalized()
+    out["rotation_quaternion"] = [rot_n.w, rot_n.x, rot_n.y, rot_n.z]
+    out["scale"] = [scl.x, scl.y, scl.z]
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +142,7 @@ def _available_presets_enum(self, context):
 # ---------------------------------------------------------------------------
 
 class ARMATURE_OT_preset_merge_add(Operator):
-    """Add a preset to the merge list (later entries overwrite earlier ones per bone)"""
+    """Add a preset to the merge list (presets are composed in order, emulating sequential apply-as-rest)"""
     bl_idname = "armature.preset_merge_add"
     bl_label = "Add Preset to Merge"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -95,7 +160,7 @@ class ARMATURE_OT_preset_merge_add(Operator):
         layout = self.layout
         layout.label(text="Pick a preset to append:")
         layout.prop(self, "preset_name", text="")
-        layout.label(text="Order = apply order. Later entries win per bone.", icon='INFO')
+        layout.label(text="Order = sequential apply-as-rest order. Matrices compose left-to-right.", icon='INFO')
 
     def execute(self, context):
         coll, _, _ = _get_merge_state(context)
@@ -204,7 +269,7 @@ class ARMATURE_OT_preset_merge_execute(Operator):
         layout.separator()
         layout.prop(self, "output_name")
         layout.prop(self, "overwrite")
-        layout.label(text="Later entries overwrite earlier ones per bone.", icon='INFO')
+        layout.label(text="Per bone: matrices compose in order (M1 · M2 · …).", icon='INFO')
 
     def execute(self, context):
         coll, _, _ = _get_merge_state(context)
@@ -248,28 +313,50 @@ class ARMATURE_OT_preset_merge_execute(Operator):
                 return {'CANCELLED'}
             loaded.append((name, data))
 
-        # Ordered last-write-wins merge of bone dicts.
-        merged_bones = {}
+        # Sequential apply-as-rest emulation requires flattened (inherit_scale=NONE)
+        # context. Reject any source that is not flattened — composing in a parent-
+        # scale-inheriting context cannot be expressed as per-bone matrix products.
+        non_flattened = [n for n, d in loaded if not d.get("flattened", False)]
+        if non_flattened:
+            self.report(
+                {'ERROR'},
+                "Cannot merge non-flattened presets: "
+                + ", ".join(non_flattened)
+                + ". Re-save them via the standard apply-as-rest workflow first."
+            )
+            return {'CANCELLED'}
+
+        # Per-bone apply-as-rest composition (NOT a 4x4 matrix product).
+        # Bones absent from a preset contribute the identity step for that
+        # preset, which mirrors apply-as-rest leaving an untouched bone unchanged.
+        bone_steps = {}        # bone_name -> list of (loc, rot, scl)
+        merged_templates = {}  # last-seen aux keys (inherit_scale, etc.)
         per_source_counts = []
         for name, data in loaded:
             bones = data.get("bones") or {}
             per_source_counts.append((name, len(bones)))
             for bone_name, bone_data in bones.items():
-                merged_bones[bone_name] = copy.deepcopy(bone_data)
+                bone_steps.setdefault(bone_name, []).append(_read_step(bone_data))
+                merged_templates[bone_name] = bone_data
 
-        # Determine flattened flag: only safe if ALL sources are flattened.
-        all_flattened = all(d.get("flattened", False) for _, d in loaded)
+        merged_bones = {}
+        for bone_name, steps in bone_steps.items():
+            loc, rot, scl = _compose_apply_rest_chain(steps)
+            merged_bones[bone_name] = _step_to_bone_data(
+                loc, rot, scl, merged_templates.get(bone_name)
+            )
 
         merged_preset = {
             "name": out_name,
             "source_armature": "merged:" + " + ".join(ordered_names),
             "bone_count": len(merged_bones),
             "bones": merged_bones,
-            "flattened": all_flattened,
+            "flattened": True,
             "merged_from": ordered_names,
             "description": (
-                "Merged preset. Equivalent to applying source presets in listed "
-                "order: later entries overwrite earlier ones per bone."
+                "Merged preset (sequential composition). Loading this once and "
+                "applying as rest is equivalent to loading the source presets in "
+                "order, applying as rest between each."
             ),
         }
 
@@ -353,9 +440,9 @@ def draw_merge_ui(layout, context, props):
 
     info = box.box()
     info.scale_y = 0.8
-    info.label(text="Mathematically equivalent to applying source presets in order.", icon='INFO')
-    info.label(text="Per bone: later entry wins. Bones unique to earlier entries are kept.")
-    info.label(text="Diff/precision presets cannot be merged (rest-pose state-dependent).", icon='ERROR')
+    info.label(text="Emulates sequential apply-as-rest of the source presets in order.", icon='INFO')
+    info.label(text="Per bone: local TRS matrices are composed (M1 · M2 · …), then re-decomposed.")
+    info.label(text="Sources must be flattened. Diff/precision presets are not supported.", icon='ERROR')
 
 
 # ---------------------------------------------------------------------------
