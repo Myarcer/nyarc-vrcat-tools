@@ -4,6 +4,30 @@
 import bpy
 
 
+def _deferred_set_target(target_name):
+    """Apply auto-selected target outside of draw context.
+
+    Writing to PropertyGroup pointers from within a panel draw raises
+    "Writing to ID classes in this context is not allowed" in Blender 4.x.
+    We schedule the assignment via bpy.app.timers so it runs in a safe
+    context on the next event loop tick.
+    """
+    scene = bpy.context.scene
+    props = getattr(scene, "nyarc_tools_props", None)
+    if props is None:
+        return None
+    target = bpy.data.objects.get(target_name)
+    if target is None:
+        return None
+    # Re-check: another tick may have set it already.
+    if props.shapekey_edit_target_mesh != target:
+        try:
+            props.shapekey_edit_target_mesh = target
+        except Exception as e:
+            print(f"[Nyarc] deferred target assign failed: {e}")
+    return None  # one-shot timer
+
+
 def draw_workspace_ui(layout, context, props):
     """Draw the unified Shape Key Workspace section"""
     layout.separator(factor=0.5)
@@ -36,9 +60,16 @@ def draw_workspace_ui(layout, context, props):
     target_objects = _get_all_target_objects(context, props)
     
     if target_objects:
-        # Auto-select first target if none selected
+        # Auto-select first target if none selected.
+        # MUST defer: writing props during draw raises
+        # "Writing to ID classes in this context is not allowed".
         if not props.shapekey_edit_target_mesh or props.shapekey_edit_target_mesh not in target_objects:
-            props.shapekey_edit_target_mesh = target_objects[0]
+            first = target_objects[0]
+            if not bpy.app.timers.is_registered(_deferred_set_target):
+                bpy.app.timers.register(
+                    lambda name=first.name: _deferred_set_target(name),
+                    first_interval=0.0,
+                )
         
         if len(target_objects) > 1:
             target_label = workspace_box.row()
