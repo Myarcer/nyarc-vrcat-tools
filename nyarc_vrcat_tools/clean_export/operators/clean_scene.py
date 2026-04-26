@@ -17,16 +17,36 @@ from ..utils.name_cleaner import strip_numeric_suffix
 
 
 def _get_mesh_children_recursive(armature_obj, scene):
-    """Recursively find all mesh children of armature_obj in given scene."""
+    """Find all mesh objects belonging to armature_obj in the scene.
+
+    Includes:
+    - meshes parented to the armature (or to any of its child meshes)
+    - meshes that reference the armature via an Armature modifier but are
+      not directly parented (common when built outside of 'Parent with
+      Armature Deform' workflow)
+    """
     meshes = []
+    seen = set()
 
-    def recurse(parent):
+    def recurse_children(parent):
         for obj in scene.objects:
-            if obj.parent == parent and obj.type == 'MESH':
+            if obj.parent == parent and obj.type == 'MESH' and obj not in seen:
+                seen.add(obj)
                 meshes.append(obj)
-                recurse(obj)
+                recurse_children(obj)
 
-    recurse(armature_obj)
+    recurse_children(armature_obj)
+
+    # Also pick up meshes linked via Armature modifier (no parent relationship)
+    for obj in scene.objects:
+        if obj.type != 'MESH' or obj in seen:
+            continue
+        for mod in obj.modifiers:
+            if mod.type == 'ARMATURE' and mod.object == armature_obj:
+                seen.add(obj)
+                meshes.append(obj)
+                break
+
     return meshes
 
 
@@ -436,25 +456,43 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
                     pass  # object excluded from view layer — skip gracefully
             context.view_layer.objects.active = source_armature
 
-            # 6. Export FBX (CATS-compatible defaults)
+            # 6. Export FBX — settings match CATS exactly for VRChat/Unity compatibility.
+            # Key differences from naive defaults:
+            #   mesh_smooth_type='OFF'  → Unity computes normals itself; 'FACE'/'EDGE'
+            #                             breaks blendshape normals in Unity.
+            #   axis_forward='-Z' / axis_up='Y'  → Unity coordinate space.
+            #   armature_nodetype='NULL'          → cleaner rig import in Unity.
+            #   use_tspace=False                  → tangent-space normals off (CATS default).
+            #   bake_anim_use_nla_strips/all_actions=False  → avoids animation explosion.
             bpy.ops.export_scene.fbx(
                 filepath=self.filepath,
                 use_selection=True,
-                object_types={'ARMATURE', 'MESH'},
+                axis_forward='-Z',
+                axis_up='Y',
+                global_scale=1.0,
+                apply_unit_scale=True,
+                apply_scale_options='FBX_SCALE_NONE',
+                object_types={'ARMATURE', 'MESH', 'EMPTY'},
                 use_mesh_modifiers=True,
+                mesh_smooth_type='OFF',
+                use_mesh_edges=False,
+                use_tspace=False,
+                use_custom_props=True,
                 add_leaf_bones=False,
                 primary_bone_axis='Y',
                 secondary_bone_axis='X',
                 use_armature_deform_only=False,
+                armature_nodetype='NULL',
                 bake_anim=True,
                 bake_anim_use_all_bones=True,
-                bake_anim_use_nla_strips=True,
-                bake_anim_use_all_actions=True,
+                bake_anim_use_nla_strips=False,
+                bake_anim_use_all_actions=False,
+                bake_anim_force_startend_keying=True,
                 bake_anim_step=1.0,
                 bake_anim_simplify_factor=1.0,
-                apply_unit_scale=True,
-                apply_scale_options='FBX_SCALE_NONE',
-                mesh_smooth_type='FACE',
+                path_mode='AUTO',
+                embed_textures=False,
+                batch_mode='OFF',
             )
 
             # Restore selection
