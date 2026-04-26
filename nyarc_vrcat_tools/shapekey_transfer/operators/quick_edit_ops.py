@@ -94,6 +94,23 @@ class MESH_OT_enter_shapekey_edit(Operator):
             return {'CANCELLED'}
         active_key_name = active_key.name
 
+        # Toggle: pressing the same edit button again exits edit mode
+        if (props.shapekey_edit_prev_key_name == active_key_name and
+                props.shapekey_edit_prev_target_name == target_mesh.name):
+            # Reset key to 0.0 on target and source
+            active_key.value = 0.0
+            source_obj = props.shapekey_source_object
+            if source_obj and source_obj.data.shape_keys:
+                source_key = source_obj.data.shape_keys.key_blocks.get(active_key_name)
+                if source_key:
+                    source_key.value = 0.0
+            props.shapekey_edit_prev_key_name = ""
+            props.shapekey_edit_prev_target_name = ""
+            if context.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+            self.report({'INFO'}, f"Exited edit for '{active_key_name}'")
+            return {'FINISHED'}
+
         # Deactivate previously-edited key: reset to 0.0 on both target and source
         if props.shapekey_edit_prev_key_name and props.shapekey_edit_prev_target_name:
             prev_target = bpy.data.objects.get(props.shapekey_edit_prev_target_name)
