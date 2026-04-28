@@ -123,8 +123,9 @@ def draw_details_ui(layout, context, props):
             cats_toolkit_info = companion_box.column(align=True)
             cats_toolkit_info.scale_y = 0.8
             cats_toolkit_info.label(text="  ✓ Use for: Armature fixing, bone merging, avatar optimization")
-            cats_toolkit_info.label(text="  ✓ CATS (Original): github.com/teamneoneko/Cats-Blender-Plugin-Unofficial")
-            cats_toolkit_info.label(text="  ✓ Avatar Toolkit (Newer): github.com/teamneoneko/Avatar-Toolkit")
+            cats_toolkit_info.label(text="  ✓ CATS: github.com/teamneoneko/Cats-Blender-Plugin")
+            cats_toolkit_info.label(text="  ✓ Avatar Toolkit: git.disroot.org/Neoneko/Avatar-Toolkit")
+            cats_toolkit_info.label(text="  ✓ Clean FBX export uses CATS-compatible settings")
             cats_toolkit_info.label(text="  ✓ Works alongside: All Nyarc VRCat Tools modules")
 
             companion_box.separator()

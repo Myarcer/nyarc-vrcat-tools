@@ -38,6 +38,13 @@ One-click mirroring system for accessories and bone structures:
 - **Auto-Detection System**: Automatic identification of flip candidates with safety validation
 - **Combined Operations**: Simultaneous mesh and bone flipping for complete workflows
 
+### 📤 **Clean FBX Export (CATS-Style)**
+Direct FBX export with CATS Blender Plugin / Avatar Toolkit-compatible settings:
+- **CATS-Compatible Settings**: Matched to [CATS Blender Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin) and [Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit) export behavior
+- **Name Suffix Stripping**: Automatically removes .001/.016-style numeric suffixes from all names
+- **Non-Destructive**: Names are renamed temporarily during export and restored after — no scene copy needed
+- **Unity/VRChat Ready**: `FBX_SCALE_ALL`, no animation bake, `armature_nodetype='NULL'`, and other Unity-optimal defaults
+
 ### 📤 **Armature Diff Export** *(Work in Progress)*
 Advanced armature difference calculation and export system:
 - **Difference Calculation**: Precise mathematical difference detection between armature states
@@ -129,7 +136,8 @@ and takes inspiration from [RinvosBlendshapeTransfer](https://github.com/neongm/
 
 - **VRChat Community** for feedback and feature requests
 - **Blender Foundation** for the amazing 3D creation platform
-- **CATS Blender Plugin** for workflow inspiration
+- **[CATS Blender Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin)** for workflow inspiration and FBX export settings reference
+- **[Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit)** for the next-gen CATS-successor reference
 - **Avatar Tools Community** for testing and validation
 - **[SENT Robust Weight Transfer](https://github.com/sentfromspacevr/robust-weight-transfer)** for harmonic inpainting-based robust shape key transfer algorithm
 - **[RinvosBlendshapeTransfer](https://github.com/neongm/RinvosBlendshapeTransfer)** for ideas and optimizations on standard blendshape transfer

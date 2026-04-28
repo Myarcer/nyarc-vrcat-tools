@@ -152,15 +152,15 @@ def draw_ui(layout, context):
 
         layout.separator(factor=0.6)
 
-        # Direct FBX export button (CATS-style: strips names in-place, exports, restores)
+        # Direct FBX export button (CATS/Avatar Toolkit-style settings)
         row = layout.row()
         row.scale_y = 1.4
         row.operator(
             "export.nyarc_clean_fbx",
-            text="Export Clean FBX Directly",
+            text="Export Clean FBX (CATS-Style)",
             icon='EXPORT'
         )
-        layout.label(text="Exports FBX with clean names (no new window).", icon='INFO')
+        layout.label(text="CATS/Avatar Toolkit-compatible FBX with clean names.", icon='INFO')
 
     else:
         layout.separator(factor=0.5)
