@@ -323,13 +323,13 @@ class EXPORT_OT_create_clean_scene(Operator):
 
 
 class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
-    """Export selected armature + meshes as FBX with .001 suffixes stripped in-place, then restored."""
+    """Export selected armature + meshes as FBX (CATS/Avatar Toolkit-style settings) with .001 suffixes stripped."""
 
     bl_idname = "export.nyarc_clean_fbx"
-    bl_label = "Export Clean FBX"
+    bl_label = "Export Clean FBX (CATS-Style)"
     bl_description = (
-        "Export armature + child meshes as FBX with .001/.016-style suffixes stripped. "
-        "Names are renamed temporarily and restored after export — no scene copy needed."
+        "Export armature + child meshes as FBX with CATS/Avatar Toolkit-compatible settings "
+        "and .001/.016-style suffixes stripped. Names are renamed temporarily and restored after export"
     )
     bl_options = {'REGISTER'}
 
@@ -456,14 +456,19 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
                     pass  # object excluded from view layer — skip gracefully
             context.view_layer.objects.active = source_armature
 
-            # 6. Export FBX — settings match CATS exactly for VRChat/Unity compatibility.
-            # Key differences from naive defaults:
-            #   mesh_smooth_type='OFF'  → Unity computes normals itself; 'FACE'/'EDGE'
-            #                             breaks blendshape normals in Unity.
-            #   axis_forward='-Z' / axis_up='Y'  → Unity coordinate space.
-            #   armature_nodetype='NULL'          → cleaner rig import in Unity.
-            #   use_tspace=False                  → tangent-space normals off (CATS default).
-            #   bake_anim_use_nla_strips/all_actions=False  → avoids animation explosion.
+            # 6. Export FBX — settings matched to CATS Blender Plugin / Avatar Toolkit
+            # for VRChat/Unity compatibility.
+            # Reference: github.com/teamneoneko/Cats-Blender-Plugin (blender-42 branch)
+            #            git.disroot.org/Neoneko/Avatar-Toolkit
+            # Key CATS-style settings:
+            #   bake_anim=False           → no animation bake (avatar export, not anim)
+            #   apply_scale_options='FBX_SCALE_ALL' → CATS default, Unity expects this
+            #   use_mesh_modifiers=False   → CATS expects modifiers already applied
+            #   use_custom_props=False     → CATS doesn't export custom properties
+            #   mesh_smooth_type='OFF'     → Unity computes normals itself
+            #   embed_textures=True        → CATS default for portability
+            #   armature_nodetype='NULL'   → cleaner rig import in Unity
+            #   object_types includes 'OTHER' → matches CATS behavior
             bpy.ops.export_scene.fbx(
                 filepath=self.filepath,
                 use_selection=True,
@@ -471,27 +476,21 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
                 axis_up='Y',
                 global_scale=1.0,
                 apply_unit_scale=True,
-                apply_scale_options='FBX_SCALE_NONE',
-                object_types={'ARMATURE', 'MESH', 'EMPTY'},
-                use_mesh_modifiers=True,
+                apply_scale_options='FBX_SCALE_ALL',
+                object_types={'ARMATURE', 'MESH', 'EMPTY', 'OTHER'},
+                use_mesh_modifiers=False,
                 mesh_smooth_type='OFF',
                 use_mesh_edges=False,
                 use_tspace=False,
-                use_custom_props=True,
+                use_custom_props=False,
                 add_leaf_bones=False,
                 primary_bone_axis='Y',
                 secondary_bone_axis='X',
                 use_armature_deform_only=False,
                 armature_nodetype='NULL',
-                bake_anim=True,
-                bake_anim_use_all_bones=True,
-                bake_anim_use_nla_strips=False,
-                bake_anim_use_all_actions=False,
-                bake_anim_force_startend_keying=True,
-                bake_anim_step=1.0,
-                bake_anim_simplify_factor=1.0,
+                bake_anim=False,
                 path_mode='AUTO',
-                embed_textures=False,
+                embed_textures=True,
                 batch_mode='OFF',
             )
 
