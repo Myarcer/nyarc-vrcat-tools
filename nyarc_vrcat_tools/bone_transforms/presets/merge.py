@@ -32,7 +32,7 @@ import copy
 import os
 from mathutils import Matrix, Vector, Quaternion
 from bpy.types import Operator, PropertyGroup
-from bpy.props import StringProperty, IntProperty, CollectionProperty
+from bpy.props import StringProperty, IntProperty, EnumProperty, CollectionProperty
 
 from .manager import (
     get_available_presets,
