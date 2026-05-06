@@ -60,16 +60,16 @@ def draw_diff_export_ui(layout, context, props):
             warning_box = diff_box.box()
             warning_box.alert = True
             warning_header = warning_box.row()
-            warning_header.label(text="⚠️ IMPORTANT REQUIREMENT", icon='ERROR')
+            warning_header.label(text="IMPORTANT REQUIREMENT", icon='ERROR')
             warning_row1 = warning_box.row()
             warning_row1.scale_y = 0.8
-            warning_row1.label(text="Modified armature MUST have ALL bones set to:")
+            warning_row1.label(text="Modified armature must have been edited with Inherit Scale: NONE")
             warning_row2 = warning_box.row()
             warning_row2.scale_y = 0.8
-            warning_row2.label(text="Inherit Scale: NONE")
+            warning_row2.label(text="(use 'Flatten Inheritance' first, or set all bones manually)")
             warning_row3 = warning_box.row()
             warning_row3.scale_y = 0.8
-            warning_row3.label(text="(inherit_scale=FULL causes precision errors)")
+            warning_row3.label(text="Otherwise transforms may have incorrect values", icon='INFO')
             
             # WARNING about X/Z scaling limitation
             xz_warning_box = diff_box.box()

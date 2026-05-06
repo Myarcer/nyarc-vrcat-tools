@@ -473,6 +473,11 @@ class ARMATURE_OT_save_bone_transforms(Operator):
                 json.dump(preset_data, f, indent=2)
             
             self.report({'INFO'}, f"Saved preset '{preset_name}': {bone_count} bones total ({len(statistical_change_bones)} statistical + {len(inheritance_bones)} inherited)")
+            # Sync the UIList so the new preset appears immediately
+            try:
+                bpy.ops.armature.refresh_preset_list()
+            except Exception:
+                pass
             return {'FINISHED'}
             
         except Exception as e:
@@ -650,6 +655,11 @@ class ARMATURE_OT_delete_bone_transforms(Operator):
             
             os.remove(preset_file)
             self.report({'INFO'}, f"Deleted preset '{self.preset_name}'")
+            # Sync the UIList so the deleted preset disappears immediately
+            try:
+                bpy.ops.armature.refresh_preset_list()
+            except Exception:
+                pass
             return {'FINISHED'}
             
         except Exception as e:

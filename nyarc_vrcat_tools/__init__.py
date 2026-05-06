@@ -296,6 +296,15 @@ class ShapeKeySelectionItem(PropertyGroup):
     )
 
 
+class PresetListItem(PropertyGroup):
+    """Single preset entry in the scrollable presets list"""
+    name: StringProperty(
+        name="Preset Name",
+        description="Name of the bone transform preset",
+        default=""
+    )
+
+
 class NyarcToolsProperties(PropertyGroup):
     """Main properties container for all Nyarc Tools"""
     
@@ -820,6 +829,19 @@ class NyarcToolsProperties(PropertyGroup):
         min=3,
         max=20
     )
+
+    bone_preset_list: CollectionProperty(
+        name="Preset List",
+        description="Scrollable list of available bone transform presets",
+        type=PresetListItem
+    )
+
+    bone_preset_active_index: IntProperty(
+        name="Active Preset Index",
+        description="Index of the currently selected preset",
+        default=0,
+        min=0
+    )
     
     # Armature Diff Export Properties (for comparing two armatures)
     bone_diff_original_armature: PointerProperty(
@@ -1089,6 +1111,7 @@ class VIEW3D_PT_nyarc_tools_manager(Panel):
 classes = (
     ShapeKeyTargetItem,
     ShapeKeySelectionItem,
+    PresetListItem,
     NyarcToolsProperties,
     VIEW3D_PT_nyarc_tools_manager,
 )

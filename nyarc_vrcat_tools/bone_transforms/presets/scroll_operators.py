@@ -132,6 +132,30 @@ class ARMATURE_OT_preset_scroll_to_bottom(Operator):
         
         return {'FINISHED'}
 
+class ARMATURE_OT_refresh_preset_list(Operator):
+    """Refresh the preset list from disk"""
+    bl_idname = "armature.refresh_preset_list"
+    bl_label = "Refresh Presets"
+    bl_description = "Reload preset list from disk"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if not props:
+            return {'CANCELLED'}
+
+        presets = get_available_presets()
+        props.bone_preset_list.clear()
+        for name in presets:
+            item = props.bone_preset_list.add()
+            item.name = name
+
+        if props.bone_preset_active_index >= len(presets):
+            props.bone_preset_active_index = max(0, len(presets) - 1)
+
+        return {'FINISHED'}
+
+
 class WM_OT_open_presets_folder(Operator):
     """Open presets folder in file explorer"""
     bl_idname = "wm.open_presets_folder"
@@ -163,5 +187,6 @@ SCROLL_CLASSES = (
     ARMATURE_OT_preset_scroll_down,
     ARMATURE_OT_preset_scroll_to_top,
     ARMATURE_OT_preset_scroll_to_bottom,
+    ARMATURE_OT_refresh_preset_list,
     WM_OT_open_presets_folder,
 )
