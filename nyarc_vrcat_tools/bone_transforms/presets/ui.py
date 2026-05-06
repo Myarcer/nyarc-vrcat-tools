@@ -38,18 +38,6 @@ def preset_has_precision_data_by_name(preset_name):
         pass
     return False
 
-def _sync_preset_list(props):
-    """Sync the bone_preset_list collection with presets on disk (no-op if already in sync)"""
-    presets_on_disk = get_available_presets()
-    current_names = [item.name for item in props.bone_preset_list]
-    if current_names != presets_on_disk:
-        props.bone_preset_list.clear()
-        for name in presets_on_disk:
-            item = props.bone_preset_list.add()
-            item.name = name
-        if props.bone_preset_active_index >= len(presets_on_disk):
-            props.bone_preset_active_index = max(0, len(presets_on_disk) - 1)
-
 def draw_presets_ui(layout, context, props):
     """Draw the Transform Presets UI as a collapsible section"""
     try:
@@ -74,15 +62,16 @@ def draw_presets_ui(layout, context, props):
 
         preset_box.separator()
 
-        # Sync list from disk (only updates when actual changes detected)
-        _sync_preset_list(props)
-
         # List header with count and refresh button
         list_header = preset_box.row()
         list_header.label(text=f"Available Presets ({len(props.bone_preset_list)} total):")
         list_header.operator("armature.refresh_preset_list", text="", icon='FILE_REFRESH')
 
-        if props.bone_preset_list:
+        if not props.bone_preset_list:
+            # List not yet loaded - prompt user to refresh
+            empty_row = preset_box.row()
+            empty_row.label(text="Click \u21ba to load presets from disk", icon='INFO')
+        elif props.bone_preset_list:
             # Scrollable UIList
             preset_box.template_list(
                 "PRESET_UL_list", "",
