@@ -404,7 +404,7 @@ def draw_merge_ui(layout, context, props):
     header.prop(
         context.scene, show_attr,
         icon="TRIA_DOWN" if show else "TRIA_RIGHT",
-        icon_only=True, emboss=False,
+        icon_only=True,
     )
     header.label(text="Merge Presets", icon='AUTOMERGE_ON')
 

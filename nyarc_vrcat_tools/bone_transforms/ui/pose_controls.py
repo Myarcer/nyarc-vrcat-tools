@@ -124,8 +124,7 @@ def draw_pose_history_ui(parent_box, context, props):
         header_row = history_box.row()
         header_row.prop(props, "pose_history_show_ui", 
                        text="Pose History", 
-                       icon='TRIA_DOWN' if getattr(props, 'pose_history_show_ui', True) else 'TRIA_RIGHT',
-                       emboss=False)
+                       icon='TRIA_DOWN' if getattr(props, 'pose_history_show_ui', True) else 'TRIA_RIGHT')
         
         # Enable/Disable checkbox with education button
         enable_row = header_row.row()

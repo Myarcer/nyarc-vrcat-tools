@@ -47,7 +47,7 @@ def draw_presets_ui(layout, context, props):
         preset_header = preset_box.row()
         preset_header.prop(props, "bone_presets_show_ui",
                           icon="TRIA_DOWN" if props.bone_presets_show_ui else "TRIA_RIGHT",
-                          icon_only=True, emboss=False)
+                          icon_only=True)
         preset_header.label(text="Transform Presets", icon='PRESET')
 
         if not props.bone_presets_show_ui:

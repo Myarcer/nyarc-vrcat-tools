@@ -150,8 +150,8 @@ def draw_modules(layout, context):
     if SHAPEKEY_AVAILABLE:
         shapekey_box = layout.box()
         shapekey_header = shapekey_box.row()
+        shapekey_header.prop(props, "shapekey_show_ui", icon='TRIA_DOWN' if props.shapekey_show_ui else 'TRIA_RIGHT', icon_only=True)
         shapekey_header.label(text="Shape Key Transfer", icon='SHAPEKEY_DATA')
-        shapekey_header.prop(props, "shapekey_show_ui", text="", icon='TRIA_DOWN' if props.shapekey_show_ui else 'TRIA_RIGHT')
         
         if props.shapekey_show_ui:
             # Use the module's own draw_ui function if available
@@ -165,8 +165,8 @@ def draw_modules(layout, context):
     if BONE_TRANSFORM_SAVER_AVAILABLE:
         bone_box = layout.box()
         bone_header = bone_box.row()
+        bone_header.prop(props, "bone_show_ui", icon='TRIA_DOWN' if props.bone_show_ui else 'TRIA_RIGHT', icon_only=True)
         bone_header.label(text="Pose Mode Bone Editor", icon='POSE_HLT')
-        bone_header.prop(props, "bone_show_ui", text="", icon='TRIA_DOWN' if props.bone_show_ui else 'TRIA_RIGHT')
         
         if props.bone_show_ui:
             draw_bone_saver_ui(bone_box, context, props)
@@ -175,8 +175,8 @@ def draw_modules(layout, context):
     if MIRROR_FLIP_AVAILABLE:
         mirror_flip_box = layout.box()
         mirror_flip_header = mirror_flip_box.row()
+        mirror_flip_header.prop(props, "mirror_flip_show_ui", icon='TRIA_DOWN' if props.mirror_flip_show_ui else 'TRIA_RIGHT', icon_only=True)
         mirror_flip_header.label(text="Mirror Flip Tools", icon='MOD_MIRROR')
-        mirror_flip_header.prop(props, "mirror_flip_show_ui", text="", icon='TRIA_DOWN' if props.mirror_flip_show_ui else 'TRIA_RIGHT')
 
         if props.mirror_flip_show_ui:
             draw_mirror_flip_ui(mirror_flip_box, context, props)
@@ -185,8 +185,8 @@ def draw_modules(layout, context):
     if CLEAN_EXPORT_AVAILABLE:
         clean_export_box = layout.box()
         clean_export_header = clean_export_box.row()
+        clean_export_header.prop(props, "clean_export_show_ui", icon='TRIA_DOWN' if props.clean_export_show_ui else 'TRIA_RIGHT', icon_only=True)
         clean_export_header.label(text="Clean Export", icon='EXPORT')
-        clean_export_header.prop(props, "clean_export_show_ui", text="", icon='TRIA_DOWN' if props.clean_export_show_ui else 'TRIA_RIGHT')
 
         if props.clean_export_show_ui:
             clean_export_module.draw_ui(clean_export_box, context)

@@ -2,7 +2,7 @@ bl_info = {
     "name": "Nyarc VRCat Tools",
     "blender": (4, 0, 0),
     "category": "3D View",
-    "version": (0, 2, 10),
+    "version": (0, 2, 11),
     "author": "Nyarc",
     "description": "Small quality-of-life addons for heavy VRCat avatar editing - Shape Key Transfer, Bone Transform Saver, Armature Diff Export, and more!",
     "location": "View3D > Sidebar > Nyarc VRCat Tools",
@@ -743,11 +743,17 @@ class NyarcToolsProperties(PropertyGroup):
     robust_distance_threshold: FloatProperty(
         name="Distance Threshold",
         description="Maximum allowed distance between source and destination vertex (meters). Lower values = stricter matching, smoother inpainting results. Use Auto-Tune button for optimal value",
-        default=0.01,
+        default=0.05,
         min=0.0001,
         max=0.1,
         precision=4,
         subtype='DISTANCE'
+    )
+
+    robust_auto_tune_distance: BoolProperty(
+        name="Auto-Tune Distance",
+        description="Automatically compute distance threshold per target mesh based on vertex spacing (2× median). When enabled, the manual slider is ignored and the threshold is recalculated for each target on transfer",
+        default=True
     )
 
     robust_normal_threshold: FloatProperty(
@@ -867,6 +873,24 @@ class NyarcToolsProperties(PropertyGroup):
     bone_details_show_ui: BoolProperty(
         name="Show Details & Companion Tools",
         description="Show/hide Details and Companion Tools information panel",
+        default=False
+    )
+
+    details_modules_show: BoolProperty(
+        name="Show Available Modules",
+        description="Expand/collapse the Available Modules section",
+        default=False
+    )
+
+    details_companion_show: BoolProperty(
+        name="Show Companion Tools",
+        description="Expand/collapse the Recommended Companion Tools section",
+        default=False
+    )
+
+    details_workflow_show: BoolProperty(
+        name="Show Integration Workflow",
+        description="Expand/collapse the Integration Workflow section",
         default=False
     )
     

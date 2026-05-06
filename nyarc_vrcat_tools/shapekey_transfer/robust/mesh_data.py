@@ -39,19 +39,30 @@ def extract_shape_key_displacements(obj, shape_key_name):
     return displacements, basis_verts
 
 
-def get_mesh_data_world_space(obj):
+def get_mesh_data_world_space(obj, apply_modifiers=True):
     """
     Extract mesh geometry in world space.
+
+    Args:
+        obj: Blender object
+        apply_modifiers: If True, evaluate the object with all modifiers applied.
+                         If False, use the base mesh data directly (no subdivision etc.).
+                         Use False for source objects in robust transfer so that
+                         face vertex indices match the shape-key displacement array.
 
     Returns:
         vertices: (N, 3) vertex coordinates
         faces: (F, 3) triangle indices
         normals: (N, 3) vertex normals
     """
-    # Get evaluated mesh (with modifiers applied if needed)
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    obj_eval = obj.evaluated_get(depsgraph)
-    mesh = obj_eval.to_mesh()
+    if apply_modifiers:
+        # Get evaluated mesh (with modifiers applied)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj_eval = obj.evaluated_get(depsgraph)
+        mesh = obj_eval.to_mesh()
+    else:
+        # Use base mesh data — no modifiers, vertex indices match shape-key arrays
+        mesh = obj.data.copy()
 
     try:
         # Ensure triangulation
@@ -102,8 +113,11 @@ def get_mesh_data_world_space(obj):
         return vertices, triangles, normals
 
     finally:
-        # Clean up evaluated mesh
-        obj_eval.to_mesh_clear()
+        # Clean up mesh data
+        if apply_modifiers:
+            obj_eval.to_mesh_clear()
+        else:
+            bpy.data.meshes.remove(mesh)
 
 
 def apply_shape_key_to_mesh(obj, shape_key_name, displacements):

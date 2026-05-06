@@ -14,7 +14,7 @@ def draw_details_ui(layout, context, props):
         details_header = details_box.row()
         details_header.prop(props, "bone_details_show_ui", 
                            icon="TRIA_DOWN" if getattr(props, "bone_details_show_ui", False) else "TRIA_RIGHT", 
-                           icon_only=True, emboss=False)
+                           icon_only=True)
         details_header.label(text="Details & Companion Tools", icon='INFO')
         
         # Show content if expanded

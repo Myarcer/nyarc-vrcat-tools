@@ -49,7 +49,7 @@ def draw_diff_export_ui(layout, context, props):
         diff_header = diff_box.row()
         diff_header.prop(props, "bone_diff_show_ui", 
                         icon="TRIA_DOWN" if props.bone_diff_show_ui else "TRIA_RIGHT", 
-                        icon_only=True, emboss=False)
+                        icon_only=True)
         diff_header.label(text="Armature Diff Export", icon='MODIFIER_DATA')
         
         # Show content if expanded

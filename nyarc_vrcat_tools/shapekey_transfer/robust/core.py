@@ -69,9 +69,13 @@ def transfer_shape_key_robust(
             report('ERROR', f"Failed to extract shape key '{shape_key_name}'")
             return False
 
-        # Get mesh data in world space
+        # Get mesh data in world space.
+        # Source: NO modifiers — vertex indices must match shape-key displacement array.
+        #         (The temp source may have a Subdivision modifier added by preprocessing
+        #          for the legacy Surface Deform path; that must not affect our BVH.)
+        # Target: WITH modifiers so triangulate modifier is respected.
         report('INFO', "Loading mesh geometry...")
-        source_verts, source_faces, source_normals = get_mesh_data_world_space(source_obj)
+        source_verts, source_faces, source_normals = get_mesh_data_world_space(source_obj, apply_modifiers=False)
         target_verts, target_faces, target_normals = get_mesh_data_world_space(target_obj)
 
         # Find geometric correspondence
