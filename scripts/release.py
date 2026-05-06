@@ -65,26 +65,24 @@ def get_current_version():
 
 def get_latest_release_version():
     """Get the latest release version from git tags"""
-    # --sort=-version:refname may not work on all Windows git builds; fall back to Python sort
-    tags_output = run_git_command("git tag -l v*")
+    # Get all tags sorted by version
+    tags_output = run_git_command("git tag -l 'v*' --sort=-version:refname")
     
     if not tags_output:
         print("No existing tags found - this will be the first release")
         return (0, 0, 0)
     
-    tags = [t.strip() for t in tags_output.split('\n') if t.strip()]
-    
-    def parse_tag(tag):
-        m = re.search(r'v(\d+)\.(\d+)\.(\d+)', tag)
-        return tuple(map(int, m.groups())) if m else (0, 0, 0)
-    
-    tags_parsed = [(parse_tag(t), t) for t in tags if re.search(r'v\d+\.\d+\.\d+', t)]
-    if not tags_parsed:
-        print("No versioned tags found - this will be the first release")
+    latest_tag = tags_output.split('\n')[0] if tags_output else None
+    if not latest_tag:
         return (0, 0, 0)
     
-    latest_version, latest_tag = max(tags_parsed, key=lambda x: x[0])
-    return latest_version
+    # Extract version from tag (e.g., v0.0.1 -> 0.0.1)
+    version_match = re.search(r'v(\d+)\.(\d+)\.(\d+)', latest_tag)
+    if not version_match:
+        print(f"Warning: Could not parse version from tag {latest_tag}")
+        return (0, 0, 0)
+    
+    return tuple(map(int, version_match.groups()))
 
 def bump_version(current_version, bump_type):
     """Calculate new version based on bump type"""
@@ -268,30 +266,27 @@ def create_release_commit_and_tag(new_version, changelog_content):
 
 def main():
     parser = argparse.ArgumentParser(description="Automated release script for Nyarc VRCat Tools")
+    parser.add_argument("bump_type", choices=["major", "minor", "patch"], 
+                       help="Type of version bump")
     parser.add_argument("--dry-run", action="store_true", 
                        help="Show what would be done without making changes")
     
     args = parser.parse_args()
     
-    # Read version directly from __init__.py — source of truth
-    print("[INFO] Reading version from nyarc_vrcat_tools/__init__.py...")
-    new_version = get_current_version()
-    
-    if new_version is None:
-        sys.exit(1)
-    
-    version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
-    print(f"[INFO] Version in __init__.py: v{version_str}")
-    
-    # Check if this tag already exists
-    existing_tags = run_git_command("git tag -l") or ""
-    if f"v{version_str}" in existing_tags.split('\n'):
-        print(f"[ERROR] Tag v{version_str} already exists. Bump the version in __init__.py first.")
-        sys.exit(1)
-    
-    # Use latest release tag as changelog base
+    # Get current version from git tags (not from files)
+    print("[INFO] Checking latest release version...")
     latest_release = get_latest_release_version()
-    print(f"[INFO] Latest release tag: v{latest_release[0]}.{latest_release[1]}.{latest_release[2]}")
+    current_file_version = get_current_version()
+    
+    if current_file_version is None:
+        sys.exit(1)
+    
+    print(f"Latest release: v{latest_release[0]}.{latest_release[1]}.{latest_release[2]}")
+    print(f"Current file version: v{current_file_version[0]}.{current_file_version[1]}.{current_file_version[2]}")
+    
+    # Calculate new version based on LATEST RELEASE, not current file version
+    new_version = bump_version(latest_release, args.bump_type)
+    version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
     
     print(f"[RELEASE] Preparing release v{version_str}")
     
@@ -306,6 +301,7 @@ def main():
     
     if args.dry_run:
         print("\n[DRY RUN] Would update:")
+        print(f"  - nyarc_vrcat_tools/__init__.py: version = {new_version}")
         print(f"  - blender_manifest.toml: version = \"{version_str}\"")
         print(f"  - CHANGELOG.md: Add v{version_str} entry")
         print(f"  - Git commit: release: v{version_str}")
@@ -314,20 +310,9 @@ def main():
         print(f"  git push origin main v{version_str}")
         return
     
-    # Sync blender_manifest.toml to match __init__.py (no __init__.py rewrite)
-    print("[FILES] Syncing blender_manifest.toml...")
-    manifest_file = get_project_root() / "blender_manifest.toml"
-    if manifest_file.exists():
-        with open(manifest_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        content = re.sub(
-            r'version = "[\d.]+"',
-            f'version = "{version_str}"',
-            content,
-            count=1
-        )
-        with open(manifest_file, 'w', encoding='utf-8') as f:
-            f.write(content)
+    # Update version files
+    print("[FILES] Updating version files...")
+    update_version_files(new_version)
     
     # Update changelog
     print("[CHANGELOG] Updating CHANGELOG.md...")
