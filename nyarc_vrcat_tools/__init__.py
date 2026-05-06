@@ -2,7 +2,7 @@ bl_info = {
     "name": "Nyarc VRCat Tools",
     "blender": (4, 0, 0),
     "category": "3D View",
-    "version": (0, 2, 10),
+    "version": (0, 2, 11),
     "author": "Nyarc",
     "description": "Small quality-of-life addons for heavy VRCat avatar editing - Shape Key Transfer, Bone Transform Saver, Armature Diff Export, and more!",
     "location": "View3D > Sidebar > Nyarc VRCat Tools",
@@ -293,6 +293,15 @@ class ShapeKeySelectionItem(PropertyGroup):
         name="Selected",
         description="Whether this shape key is selected for transfer",
         default=False
+    )
+
+
+class PresetListItem(PropertyGroup):
+    """Single preset entry in the scrollable presets list"""
+    name: StringProperty(
+        name="Preset Name",
+        description="Name of the bone transform preset",
+        default=""
     )
 
 
@@ -734,11 +743,17 @@ class NyarcToolsProperties(PropertyGroup):
     robust_distance_threshold: FloatProperty(
         name="Distance Threshold",
         description="Maximum allowed distance between source and destination vertex (meters). Lower values = stricter matching, smoother inpainting results. Use Auto-Tune button for optimal value",
-        default=0.01,
+        default=0.05,
         min=0.0001,
         max=0.1,
         precision=4,
         subtype='DISTANCE'
+    )
+
+    robust_auto_tune_distance: BoolProperty(
+        name="Auto-Tune Distance",
+        description="Automatically compute distance threshold per target mesh based on vertex spacing (2× median). When enabled, the manual slider is ignored and the threshold is recalculated for each target on transfer",
+        default=True
     )
 
     robust_normal_threshold: FloatProperty(
@@ -820,6 +835,19 @@ class NyarcToolsProperties(PropertyGroup):
         min=3,
         max=20
     )
+
+    bone_preset_list: CollectionProperty(
+        name="Preset List",
+        description="Scrollable list of available bone transform presets",
+        type=PresetListItem
+    )
+
+    bone_preset_active_index: IntProperty(
+        name="Active Preset Index",
+        description="Index of the currently selected preset",
+        default=0,
+        min=0
+    )
     
     # Armature Diff Export Properties (for comparing two armatures)
     bone_diff_original_armature: PointerProperty(
@@ -845,6 +873,24 @@ class NyarcToolsProperties(PropertyGroup):
     bone_details_show_ui: BoolProperty(
         name="Show Details & Companion Tools",
         description="Show/hide Details and Companion Tools information panel",
+        default=False
+    )
+
+    details_modules_show: BoolProperty(
+        name="Show Available Modules",
+        description="Expand/collapse the Available Modules section",
+        default=False
+    )
+
+    details_companion_show: BoolProperty(
+        name="Show Companion Tools",
+        description="Expand/collapse the Recommended Companion Tools section",
+        default=False
+    )
+
+    details_workflow_show: BoolProperty(
+        name="Show Integration Workflow",
+        description="Expand/collapse the Integration Workflow section",
         default=False
     )
     
@@ -1062,7 +1108,8 @@ class VIEW3D_PT_nyarc_tools_manager(Panel):
         # Header info
         header_box = layout.box()
         header_row = header_box.row()
-        header_row.label(text="Nyarc VRCat Tools v0.2.9", icon='TOOL_SETTINGS')
+        _v = bl_info["version"]
+        header_row.label(text=f"Nyarc VRCat Tools v{_v[0]}.{_v[1]}.{_v[2]}", icon='TOOL_SETTINGS')
         header_row.label(text="🐱 Meow!")
         
         # Separator
@@ -1088,6 +1135,7 @@ class VIEW3D_PT_nyarc_tools_manager(Panel):
 classes = (
     ShapeKeyTargetItem,
     ShapeKeySelectionItem,
+    PresetListItem,
     NyarcToolsProperties,
     VIEW3D_PT_nyarc_tools_manager,
 )

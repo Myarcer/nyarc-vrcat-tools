@@ -610,7 +610,8 @@ def convert_head_tail_to_pose_transforms_filtered(original_transforms, modified_
                 
                 # SMART SCALING FIX: Check for uniform vs non-uniform scaling before overriding Y-scale
                 length_difference = abs(baseline_length - target_length)
-                if length_difference > 0.001:  # Significant length change
+                _length_ratio_check = (target_length / baseline_length) if baseline_length > 0 else 1.0
+                if baseline_length > 0 and abs(_length_ratio_check - 1.0) > 0.005:  # 0.5% relative tolerance (handles short bones)
                     length_ratio = target_length / baseline_length if baseline_length > 0 else 1.0
                     
                     # Check if this is uniform XYZ scaling (all axes have similar scale values)

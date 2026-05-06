@@ -132,6 +132,30 @@ class ARMATURE_OT_preset_scroll_to_bottom(Operator):
         
         return {'FINISHED'}
 
+class ARMATURE_OT_refresh_preset_list(Operator):
+    """Refresh the preset list from disk"""
+    bl_idname = "armature.refresh_preset_list"
+    bl_label = "Refresh Presets"
+    bl_description = "Reload preset list from disk"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if not props:
+            return {'CANCELLED'}
+
+        presets = get_available_presets()
+        props.bone_preset_list.clear()
+        for name in presets:
+            item = props.bone_preset_list.add()
+            item.name = name
+
+        if props.bone_preset_active_index >= len(presets):
+            props.bone_preset_active_index = max(0, len(presets) - 1)
+
+        return {'FINISHED'}
+
+
 class WM_OT_open_presets_folder(Operator):
     """Open presets folder in file explorer"""
     bl_idname = "wm.open_presets_folder"
@@ -157,11 +181,78 @@ class WM_OT_open_presets_folder(Operator):
             
         return {'FINISHED'}
 
+
+class ARMATURE_OT_rename_preset(Operator):
+    """Rename a preset file on disk"""
+    bl_idname = "armature.rename_preset"
+    bl_label = "Rename Preset"
+    bl_description = "Rename this preset"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    old_name: bpy.props.StringProperty(options={'HIDDEN'})
+    new_name: bpy.props.StringProperty(name="New Name")
+
+    def invoke(self, context, event):
+        self.new_name = self.old_name
+        return context.window_manager.invoke_props_dialog(self, width=280)
+
+    def draw(self, context):
+        self.layout.prop(self, "new_name")
+
+    def execute(self, context):
+        import os
+        new = self.new_name.strip()
+        if not new:
+            self.report({'ERROR'}, "Name cannot be empty")
+            return {'CANCELLED'}
+        if new == self.old_name:
+            return {'FINISHED'}
+        if new.endswith('.json'):
+            new = new[:-5]
+
+        presets_dir = get_presets_directory()
+        src = os.path.join(presets_dir, f"{self.old_name}.json")
+        dst = os.path.join(presets_dir, f"{new}.json")
+
+        if not os.path.exists(src):
+            self.report({'ERROR'}, f"Preset file not found: {self.old_name}.json")
+            return {'CANCELLED'}
+        if os.path.exists(dst):
+            self.report({'ERROR'}, f"A preset named '{new}' already exists")
+            return {'CANCELLED'}
+
+        try:
+            os.rename(src, dst)
+        except Exception as e:
+            self.report({'ERROR'}, f"Rename failed: {e}")
+            return {'CANCELLED'}
+
+        # Refresh the list so the new name shows up
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if props:
+            presets = get_available_presets()
+            props.bone_preset_list.clear()
+            for name in presets:
+                item = props.bone_preset_list.add()
+                item.name = name
+            # Keep selection on the renamed preset
+            try:
+                idx = presets.index(new)
+                props.bone_preset_active_index = idx
+            except ValueError:
+                pass
+
+        self.report({'INFO'}, f"Renamed '{self.old_name}' → '{new}'")
+        return {'FINISHED'}
+
+
 # Registration
 SCROLL_CLASSES = (
     ARMATURE_OT_preset_scroll_up,
     ARMATURE_OT_preset_scroll_down,
     ARMATURE_OT_preset_scroll_to_top,
     ARMATURE_OT_preset_scroll_to_bottom,
+    ARMATURE_OT_refresh_preset_list,
     WM_OT_open_presets_folder,
+    ARMATURE_OT_rename_preset,
 )

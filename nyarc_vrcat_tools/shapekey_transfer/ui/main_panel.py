@@ -86,11 +86,17 @@ def draw_single_target_ui(layout, context, props):
 
     # Get viewport-selected target if dropdown is empty
     viewport_target = None
-    if not props.shapekey_target_object and context.selected_objects:
+    if not props.shapekey_target_object:
         for obj in context.selected_objects:
             if obj.type == 'MESH' and obj != props.shapekey_source_object:
                 viewport_target = obj
                 break
+        # Fallback to active object — handles post-transfer case where active is set but
+        # selection may be empty (e.g. bpy.ops.select_all failed in sidebar context)
+        if not viewport_target:
+            active = context.active_object
+            if active and active.type == 'MESH' and active != props.shapekey_source_object:
+                viewport_target = active
 
     # Show the dropdown field
     layout.prop(props, "shapekey_target_object", text="")
@@ -210,10 +216,12 @@ def draw_single_target_ui(layout, context, props):
             robust_col = robust_box.column(align=True)
             robust_col.scale_y = 0.9
             
-            # Distance threshold with auto-tune
+            # Distance threshold with auto-tune toggle
             dist_row = robust_col.row(align=True)
-            dist_row.prop(props, "robust_distance_threshold", text="Distance Threshold", slider=True)
-            dist_row.operator("mesh.auto_tune_distance_threshold", text="", icon='AUTO')
+            sub = dist_row.row(align=True)
+            sub.enabled = not props.robust_auto_tune_distance
+            sub.prop(props, "robust_distance_threshold", text="Distance Threshold", slider=True)
+            dist_row.prop(props, "robust_auto_tune_distance", text="", icon='AUTO', toggle=True)
 
             # Normal threshold
             robust_col.prop(props, "robust_normal_threshold", text="Normal Threshold", slider=True)
@@ -587,6 +595,22 @@ def draw_multi_target_ui(layout, context, props):
         batch_op = row.operator("mesh.batch_transfer_shape_keys", text="Batch Transfer Shape Keys", icon='MODIFIER')
         batch_op.override_existing = props.shapekey_override_existing
         batch_op.skip_existing = props.shapekey_skip_existing
+
+        # Apply All Smoothing button — shown after batch when masks exist (legacy mode only)
+        if not props.shapekey_use_robust_transfer and props.shapekey_smooth_boundary:
+            masks_exist = any(
+                f"Smooth_{sk}" in t.vertex_groups
+                for t in targets
+                for sk in selected_keys
+                if t and t.vertex_groups
+            )
+            if masks_exist:
+                smooth_row = batch_box.row(align=True)
+                smooth_row.scale_y = 1.3
+                smooth_row.alert = True
+                smooth_row.operator("mesh.apply_all_smoothing", text="Apply All Smoothing", icon='SMOOTHCURVE')
+                iter_row = batch_box.row()
+                iter_row.prop(props, "shapekey_smooth_iterations", text="Smoothing Iterations", slider=True)
         
         # Transfer options below the batch button
         layout.separator(factor=0.3)
@@ -639,10 +663,12 @@ def draw_multi_target_ui(layout, context, props):
                 robust_col = robust_box.column(align=True)
                 robust_col.scale_y = 0.9
 
-                # Distance threshold with auto-tune
+                # Distance threshold with auto-tune toggle
                 dist_row = robust_col.row(align=True)
-                dist_row.prop(props, "robust_distance_threshold", text="Distance Threshold", slider=True)
-                dist_row.operator("mesh.auto_tune_distance_threshold", text="", icon='AUTO')
+                sub = dist_row.row(align=True)
+                sub.enabled = not props.robust_auto_tune_distance
+                sub.prop(props, "robust_distance_threshold", text="Distance Threshold", slider=True)
+                dist_row.prop(props, "robust_auto_tune_distance", text="", icon='AUTO', toggle=True)
 
                 # Normal threshold
                 robust_col.prop(props, "robust_normal_threshold", text="Normal Threshold", slider=True)

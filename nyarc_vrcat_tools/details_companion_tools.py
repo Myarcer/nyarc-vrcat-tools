@@ -52,157 +52,121 @@ def draw_details_ui(layout, context, props):
     """Draw the Details/Information section about all modules and companion tools"""
     try:
         details_box = layout.box()
-        
-        # Header with toggle (matching other modules' style)
+
+        # Header with toggle
         details_header = details_box.row()
+        details_header.prop(
+            props, "bone_details_show_ui",
+            icon='TRIA_DOWN' if getattr(props, "bone_details_show_ui", False) else 'TRIA_RIGHT',
+            icon_only=True
+        )
         details_header.label(text="Details & Companion Tools", icon='INFO')
-        details_header.prop(props, "bone_details_show_ui", text="", icon='TRIA_DOWN' if getattr(props, "bone_details_show_ui", False) else 'TRIA_RIGHT')
-        
-        # Show content if expanded
-        if getattr(props, "bone_details_show_ui", False):
-            # Main description - Updated to describe ALL modules
-            info_col = details_box.column(align=True)
-            info_col.scale_y = 0.9
-            
-            info_col.label(text="🎯 Purpose:", icon='FILE_TICK')
-            info_col.label(text="Comprehensive toolkit for VRCat avatar editing workflows")
-            info_col.label(text="providing shape key transfer, bone transform tools, and more.")
-            
-            details_box.separator()
-            
-            # Available Modules Overview
-            modules_box = details_box.box()
-            modules_box.label(text="📦 Available Modules", icon='OUTLINER_OB_GROUP_INSTANCE')
 
-            modules_col = modules_box.column(align=True)
-            modules_col.scale_y = 0.85
+        if not getattr(props, "bone_details_show_ui", False):
+            return
 
-            # Shape Key Transfer
-            shapekey_row = modules_col.row()
-            shapekey_row.label(text="🔄 Shape Key Transfer", icon='SHAPEKEY_DATA')
-            shapekey_info = modules_col.column(align=True)
-            shapekey_info.scale_y = 0.8
-            shapekey_info.label(text="  • Transfer shape keys between different mesh topologies")
-            shapekey_info.label(text="  • Uses Surface Deform for accurate deformation mapping")
-            shapekey_info.label(text="  • Supports drag-and-drop object selection")
+        # --- Available Modules (collapsible) ---
+        modules_box = details_box.box()
+        modules_header = modules_box.row()
+        modules_header.prop(
+            props, "details_modules_show",
+            icon='TRIA_DOWN' if getattr(props, "details_modules_show", False) else 'TRIA_RIGHT',
+            icon_only=True
+        )
+        modules_header.label(text="Available Modules", icon='OUTLINER_OB_GROUP_INSTANCE')
 
-            modules_col.separator(factor=0.5)
+        if getattr(props, "details_modules_show", False):
+            col = modules_box.column(align=True)
+            col.scale_y = 0.85
+            col.label(text="Shape Key Transfer", icon='SHAPEKEY_DATA')
+            col.label(text="  Transfer shape keys across mesh topologies (Surface Deform)")
+            col.separator(factor=0.3)
+            col.label(text="Pose Mode Bone Editor", icon='POSE_HLT')
+            col.label(text="  Save/load presets, diff export, pose history")
+            col.separator(factor=0.3)
+            col.label(text="Mirror Flip Tools", icon='MOD_MIRROR')
+            col.label(text="  Flip bones/meshes, smart chain detection")
+            col.separator(factor=0.3)
+            col.label(text="Clean Export", icon='EXPORT')
+            col.label(text="  One-click clean FBX/GLB export for VRChat upload")
 
-            # Pose Mode Bone Editor
-            pose_row = modules_col.row()
-            pose_row.label(text="🦴 Pose Mode Bone Editor", icon='POSE_HLT')
-            pose_info = modules_col.column(align=True)
-            pose_info.scale_y = 0.8
-            pose_info.label(text="  • Save and load bone transform presets")
-            pose_info.label(text="  • Professional-grade precision correction")
-            pose_info.label(text="  • Armature diff export for change tracking")
-            pose_info.label(text="  • Pose history and undo system")
+        # --- Companion Tools (collapsible) ---
+        companion_box = details_box.box()
+        companion_header = companion_box.row()
+        companion_header.prop(
+            props, "details_companion_show",
+            icon='TRIA_DOWN' if getattr(props, "details_companion_show", False) else 'TRIA_RIGHT',
+            icon_only=True
+        )
+        companion_header.label(text="Recommended Companion Tools", icon='TOOL_SETTINGS')
 
-            modules_col.separator(factor=0.5)
+        if getattr(props, "details_companion_show", False):
+            col = companion_box.column(align=True)
+            col.scale_y = 0.85
 
-            # Mirror Flip Tools
-            mirror_row = modules_col.row()
-            mirror_row.label(text="🪞 Mirror Flip Tools", icon='MOD_MIRROR')
-            mirror_info = modules_col.column(align=True)
-            mirror_info.scale_y = 0.8
-            mirror_info.label(text="  • Flip bones and meshes across armature axes")
-            mirror_info.label(text="  • Intelligent bone chain detection and naming")
-            mirror_info.label(text="  • Combined bone + mesh flipping for full avatars")
-            
-            details_box.separator()
-            
-            # Companion Tools Section - Updated for broader compatibility
-            companion_box = details_box.box()
-            companion_box.label(text="🛠️ Recommended Companion Tools", icon='TOOL_SETTINGS')
+            # CATS - abandoned
+            col.label(text="CATS Blender Plugin", icon='ARMATURE_DATA')
+            warn = companion_box.box()
+            warn.alert = True
+            warn.label(text="Original no longer developed — consider using a community fork", icon='INFO')
+            col2 = companion_box.column(align=True)
+            col2.scale_y = 0.8
+            col2.label(text="  Armature fix, bone merge, optimization")
+            col2.label(text="  github.com/teamneoneko/Cats-Blender-Plugin")
 
-            # CATS / Avatar Toolkit (merged)
-            cats_toolkit_row = companion_box.row()
-            cats_toolkit_row.scale_y = 1.1
-            cats_toolkit_row.label(text="🐱 CATS Blender Plugin / Avatar Toolkit", icon='ARMATURE_DATA')
+            companion_box.separator(factor=0.5)
 
-            cats_toolkit_info = companion_box.column(align=True)
-            cats_toolkit_info.scale_y = 0.8
-            cats_toolkit_info.label(text="  ✓ Use for: Armature fixing, bone merging, avatar optimization")
-            cats_toolkit_info.label(text="  ✓ CATS: github.com/teamneoneko/Cats-Blender-Plugin")
-            cats_toolkit_info.label(text="  ✓ Avatar Toolkit: git.disroot.org/Neoneko/Avatar-Toolkit")
-            cats_toolkit_info.label(text="  ✓ Clean FBX export uses CATS-compatible settings")
-            cats_toolkit_info.label(text="  ✓ Works alongside: All Nyarc VRCat Tools modules")
+            # Avatar Toolkit - abandoned
+            col3 = companion_box.column(align=True)
+            col3.scale_y = 0.85
+            col3.label(text="Avatar Toolkit", icon='ARMATURE_DATA')
+            warn2 = companion_box.box()
+            warn2.alert = True
+            warn2.label(text="Original no longer developed — consider using a community fork", icon='INFO')
+            col4 = companion_box.column(align=True)
+            col4.scale_y = 0.8
+            col4.label(text="  git.disroot.org/Neoneko/Avatar-Toolkit")
 
-            companion_box.separator()
+            companion_box.separator(factor=0.5)
 
-            # VRM Tools
-            vrm_row = companion_box.row()
-            vrm_row.scale_y = 1.1
-            vrm_row.label(text="🤖 VRM Import/Export Tools", icon='IMPORT')
+            col5 = companion_box.column(align=True)
+            col5.scale_y = 0.85
+            col5.label(text="VRM Import/Export Tools", icon='IMPORT')
+            col5.label(text="  VRM format support for all shape key / bone workflows")
 
-            vrm_info = companion_box.column(align=True)
-            vrm_info.scale_y = 0.8
-            vrm_info.label(text="  ✓ Use for: VRM avatar format support")
-            vrm_info.label(text="  ✓ Works with: All shape key and bone transform workflows")
-            
-            details_box.separator()
-            
-            # Integration Workflow - Updated for all modules
-            integration_box = details_box.box()
-            integration_box.label(text="🔗 Integration Workflow", icon='LINKED')
-            
-            workflow_col = integration_box.column(align=True)
-            workflow_col.scale_y = 0.85
-            workflow_col.label(text="1. Import avatar and fix with CATS or Avatar Toolkit")
-            workflow_col.label(text="2. Use Shape Key Transfer for expression/viseme setup")
-            workflow_col.label(text="3. Use Pose Mode Bone Editor for bone transform presets")
-            workflow_col.label(text="4. Save/load different configurations for testing")
-            workflow_col.label(text="5. Export final transforms and finish with companion tools")
-            
-            details_box.separator()
+        # --- Integration Workflow (collapsible) ---
+        workflow_box = details_box.box()
+        workflow_header = workflow_box.row()
+        workflow_header.prop(
+            props, "details_workflow_show",
+            icon='TRIA_DOWN' if getattr(props, "details_workflow_show", False) else 'TRIA_RIGHT',
+            icon_only=True
+        )
+        workflow_header.label(text="Integration Workflow", icon='LINKED')
 
-            # Quick Action Buttons
-            actions_box = details_box.box()
-            actions_box.label(text="🚀 Quick Actions", icon='TOOL_SETTINGS')
-            
-            actions_row = actions_box.row()
-            actions_row.scale_y = 1.2
-            actions_row.operator("info.open_documentation", text="Documentation", icon='HELP')
-            actions_row.operator("info.open_support", text="Support", icon='COMMUNITY') 
-            actions_row.operator("info.open_nyarc_github", text="GitHub", icon='URL')
-            
-            details_box.separator()
-            
-            # Credits and Community
-            credits_box = details_box.box()
-            credits_box.scale_y = 0.8
-            credits_box.label(text="🌍 Community Tools Ecosystem", icon='WORLD')
-            
-            credits_col = credits_box.column(align=True)
-            credits_col.scale_y = 0.75
-            credits_col.label(text="Part of the VRCat community's open-source toolkit")
-            credits_col.label(text="Works best when combined with other community plugins")
-            credits_col.label(text="Built for professional and amateur VRCat avatar workflows")
-            
-            # Development Credits
-            dev_box = details_box.box()
-            dev_box.scale_y = 0.8
-            dev_box.label(text="👥 Development Team", icon='COMMUNITY')
+        if getattr(props, "details_workflow_show", False):
+            col = workflow_box.column(align=True)
+            col.scale_y = 0.85
+            col.label(text="1. Import + fix avatar with CATS fork or Avatar Toolkit fork")
+            col.label(text="2. Shape Key Transfer for expressions/visemes")
+            col.label(text="3. Pose Mode Bone Editor for transform presets")
+            col.label(text="4. Clean Export for final VRChat upload")
 
-            dev_col = dev_box.column(align=True)
-            dev_col.scale_y = 0.75
-            dev_col.label(text="🎯 Nyarc - Project Maintainer & Lead Developer")
-            dev_col.label(text="🤖 Claude Code - AI Coding Agent & Architecture Assistant")
+        # Quick actions always visible when section is open
+        details_box.separator(factor=0.5)
+        actions_row = details_box.row()
+        actions_row.scale_y = 1.1
+        actions_row.operator("info.open_documentation", text="Docs", icon='HELP')
+        actions_row.operator("info.open_support", text="Support", icon='COMMUNITY')
+        actions_row.operator("info.open_nyarc_github", text="GitHub", icon='URL')
 
-            # Community Contributors
-            community_box = details_box.box()
-            community_box.scale_y = 0.8
-            community_box.label(text="🌟 VRChat Community", icon='COMMUNITY')
+        # Credits (compact)
+        cred_col = details_box.column(align=True)
+        cred_col.scale_y = 0.75
+        cred_col.label(text="Nyarc (maintainer)  |  Claude Code (AI assist)")
+        cred_col.label(text="Thanks: FluffyHellWan, Aistify, Rappy")
 
-            community_col = community_box.column(align=True)
-            community_col.scale_y = 0.75
-            community_col.label(text="Thanks to these people for helping with the project:")
-            community_col.label(text="  • FluffyHellWan")
-            community_col.label(text="  • Aistify")
-            community_col.label(text="  • Rappy")
-    
     except Exception as e:
-        # Fallback UI if there's an error
         error_box = layout.box()
         error_box.label(text="Details & Companion Tools (Error)", icon='ERROR')
         error_box.label(text=f"UI Error: {str(e)}", icon='INFO')

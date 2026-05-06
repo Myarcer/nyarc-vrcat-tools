@@ -118,7 +118,11 @@ def transforms_different(transform1, transform2, tolerance=0.01, length_toleranc
     length1 = transform1.get('bone_length', 0.0)
     length2 = transform2.get('bone_length', 0.0)
     length_difference = abs(length1 - length2)
-    length_changed = length_difference > length_tolerance
+    if min(length1, length2) > 0:
+        length_ratio = max(length1, length2) / min(length1, length2)
+        length_changed = abs(length_ratio - 1.0) > 0.005  # 0.5% relative tolerance (handles short bones)
+    else:
+        length_changed = length_difference > length_tolerance
     
     # 3. Check if bone has ANY physical changes
     has_physical_changes = matrix_changed or length_changed

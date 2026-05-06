@@ -8,6 +8,26 @@ from bpy.props import FloatProperty, BoolProperty, IntProperty
 from bpy.types import Operator
 
 
+def compute_auto_tune_threshold(source_obj, target_obj):
+    """Compute recommended distance threshold (2x median nearest-neighbor distance).
+    Returns a float in meters, or None on failure."""
+    try:
+        import numpy as np
+        from ..robust.mesh_data import get_mesh_data_world_space
+        import scipy.spatial
+
+        source_verts, _, _ = get_mesh_data_world_space(source_obj)
+        target_verts, _, _ = get_mesh_data_world_space(target_obj)
+
+        tree = scipy.spatial.cKDTree(source_verts)
+        distances, _ = tree.query(target_verts)
+        median_dist = float(np.median(distances))
+        return median_dist * 2.0
+    except Exception as e:
+        print(f"[Auto-Tune] Failed for {target_obj.name}: {e}")
+        return None
+
+
 class MESH_OT_transfer_shape_key_robust(Operator):
     """Transfer shape key using robust harmonic inpainting"""
     bl_idname = "mesh.transfer_shape_key_robust"
@@ -18,7 +38,7 @@ class MESH_OT_transfer_shape_key_robust(Operator):
     distance_threshold: FloatProperty(
         name="Distance Threshold",
         description="Maximum spatial distance for valid match (meters)",
-        default=0.01,
+        default=0.05,
         min=0.0001,
         max=0.1,
         precision=4
@@ -115,12 +135,22 @@ class MESH_OT_transfer_shape_key_robust(Operator):
         try:
             from ..robust.core import transfer_shape_key_robust
 
+            # Resolve distance threshold (auto-tune per target if enabled)
+            distance_threshold = props.robust_distance_threshold
+            if getattr(props, 'robust_auto_tune_distance', False):
+                tuned = compute_auto_tune_threshold(source_obj, target_obj)
+                if tuned is not None:
+                    distance_threshold = tuned
+                    self.report({'INFO'}, f"Auto-tuned distance for '{target_obj.name}': {tuned:.4f}m")
+                else:
+                    self.report({'WARNING'}, f"Auto-tune failed for '{target_obj.name}', using manual value")
+
             # Run robust transfer using scene properties
             success = transfer_shape_key_robust(
                 source_obj=source_obj,
                 target_obj=target_obj,
                 shape_key_name=shape_key_name,
-                distance_threshold=props.robust_distance_threshold,
+                distance_threshold=distance_threshold,
                 normal_threshold=props.robust_normal_threshold,
                 use_pointcloud=props.robust_use_pointcloud,
                 smooth_iterations=props.robust_smooth_iterations,
@@ -171,38 +201,14 @@ class MESH_OT_auto_tune_distance_threshold(Operator):
             self.report({'WARNING'}, "Select source and target objects first")
             return {'CANCELLED'}
 
-        try:
-            import numpy as np
-            from ..robust.mesh_data import get_mesh_data_world_space
-            import scipy.spatial
-
-            # Get mesh data
-            source_verts, _, _ = get_mesh_data_world_space(source_obj)
-            target_verts, _, _ = get_mesh_data_world_space(target_obj)
-
-            # Build KD-tree
-            tree = scipy.spatial.cKDTree(source_verts)
-
-            # Query distances
-            distances, _ = tree.query(target_verts)
-
-            # Compute median and recommended threshold
-            median_dist = float(np.median(distances))
-            recommended = median_dist * 2.0  # 2× median for safety
-
-            # Update property
-            props.robust_distance_threshold = recommended
-
-            self.report({'INFO'}, f"Distance threshold set to {recommended:.4f}m (2× median)")
-            return {'FINISHED'}
-
-        except ImportError as e:
-            self.report({'ERROR'}, f"Missing dependencies: {e}")
+        recommended = compute_auto_tune_threshold(source_obj, target_obj)
+        if recommended is None:
+            self.report({'ERROR'}, "Auto-tune failed (check that scipy is installed)")
             return {'CANCELLED'}
 
-        except Exception as e:
-            self.report({'ERROR'}, f"Auto-tune failed: {e}")
-            return {'CANCELLED'}
+        props.robust_distance_threshold = recommended
+        self.report({'INFO'}, f"Distance threshold set to {recommended:.4f}m (2× median)")
+        return {'FINISHED'}
 
 
 # Registration

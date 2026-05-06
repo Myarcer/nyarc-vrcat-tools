@@ -364,7 +364,7 @@ class MESH_OT_transfer_shape_key(Operator):
                 # Special case: Need to switch to weight paint mode
                 _, target_for_paint, vgroup_name = result
 
-                # Clean up first (before switching to weight paint mode)
+                # Clean up first (before scheduling weight paint mode)
                 print(f"[DEBUG] Cleaning up modifiers...")
                 if source_modifiers:
                     remove_surface_deform_compatibility_modifiers(working_source, source_modifiers)
@@ -376,30 +376,18 @@ class MESH_OT_transfer_shape_key(Operator):
                     cleanup_preprocessed_source(working_source, context)
                     is_temp_source = False  # Mark as cleaned to prevent double cleanup in finally
 
-                # Now switch to weight paint mode
-                print(f"[DEBUG] Switching to Weight Paint mode...")
+                # Set target as active so the panel can find it for the button check
+                context.view_layer.objects.active = target_for_paint
+
+                # Schedule weight paint mode entry via timer (avoids context issues from sidebar panel)
+                print(f"[DEBUG] Scheduling Weight Paint mode entry via timer...")
                 try:
-                    bpy.ops.object.select_all(action='DESELECT')
-                    target_for_paint.select_set(True)
-                    context.view_layer.objects.active = target_for_paint
-
-                    vgroup = target_for_paint.vertex_groups.get(vgroup_name)
-                    if vgroup:
-                        target_for_paint.vertex_groups.active_index = vgroup.index
-
-                    print(f"[DEBUG] About to call mode_set(WEIGHT_PAINT)...")
-                    bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
-                    print(f"[DEBUG] Mode set complete. Current mode: {bpy.context.mode}")
-
-                    # Force UI refresh to show Apply Smoothing button
-                    for area in context.screen.areas:
-                        if area.type == 'VIEW_3D':
-                            area.tag_redraw()
-
-                    self.report({'INFO'}, f"Switched to Weight Paint mode - Edit mask then click 'Apply Smoothing'")
+                    from ... import schedule_enter_weight_paint
+                    schedule_enter_weight_paint(target_for_paint, vgroup_name)
+                    self.report({'INFO'}, f"Transfer complete — entering Weight Paint mode to edit mask")
                 except Exception as e:
-                    print(f"[DEBUG] Exception during mode switch: {e}")
-                    self.report({'WARNING'}, f"Transfer complete but couldn't switch to Weight Paint: {str(e)[:50]}")
+                    print(f"[DEBUG] Could not schedule weight paint: {e}")
+                    self.report({'INFO'}, f"Transfer complete — mask '{vgroup_name}' created. Click 'Apply Smoothing' when ready.")
 
                 return {'FINISHED'}
             elif result:
@@ -578,12 +566,21 @@ class MESH_OT_batch_transfer_shape_keys(Operator):
                                 target_obj.shape_key_remove(target_shape_key)
                                 self.report({'INFO'}, f"Overriding existing shape key '{shape_key_name}' on '{target_obj.name}'")
 
+                        # Resolve distance threshold (auto-tune per target if enabled)
+                        distance_threshold = props.robust_distance_threshold
+                        if getattr(props, 'robust_auto_tune_distance', False):
+                            from .robust_transfer_ops import compute_auto_tune_threshold
+                            tuned = compute_auto_tune_threshold(working_source, target_obj)
+                            if tuned is not None:
+                                distance_threshold = tuned
+                                self.report({'INFO'}, f"Auto-tuned distance for '{target_obj.name}': {tuned:.4f}m")
+
                         # Call robust transfer (without debug visualization for batch mode)
                         result = transfer_shape_key_robust(
                             source_obj=working_source,
                             target_obj=target_obj,
                             shape_key_name=shape_key_name,
-                            distance_threshold=props.robust_distance_threshold,
+                            distance_threshold=distance_threshold,
                             normal_threshold=props.robust_normal_threshold,
                             use_pointcloud=props.robust_use_pointcloud,
                             smooth_iterations=props.robust_smooth_iterations,
@@ -826,6 +823,73 @@ class MESH_OT_apply_smoothing_mask(Operator):
             return {'CANCELLED'}
 
 
+class MESH_OT_apply_all_smoothing(Operator):
+    """Apply smoothing to all pending Smooth_ masks across all batch targets"""
+    bl_idname = "mesh.apply_all_smoothing"
+    bl_label = "Apply All Smoothing"
+    bl_description = "Apply Laplacian smoothing using all pending Smooth_ masks across all target objects and selected shape keys"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        if context.mode == 'PAINT_WEIGHT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if not props:
+            self.report({'ERROR'}, "Properties not found")
+            return {'CANCELLED'}
+
+        target_objects = props.get_target_objects_list()
+        selected_keys = props.get_selected_shape_keys()
+
+        if not target_objects or not selected_keys:
+            self.report({'ERROR'}, "No targets or shape keys selected")
+            return {'CANCELLED'}
+
+        applied_count = 0
+        failed_count = 0
+
+        for target_obj in target_objects:
+            for shape_key_name in selected_keys:
+                vgroup_name = f"Smooth_{shape_key_name}"
+                if vgroup_name not in target_obj.vertex_groups:
+                    continue
+
+                try:
+                    result = apply_vertex_group_smoothing(
+                        target_obj,
+                        shape_key_name,
+                        vgroup_name,
+                        smooth_iterations=props.shapekey_smooth_iterations
+                    )
+                    if result:
+                        # Keep shape key visible
+                        if target_obj.data.shape_keys:
+                            sk = target_obj.data.shape_keys.key_blocks.get(shape_key_name)
+                            if sk:
+                                sk.value = 1.0
+                        target_obj.data.update()
+                        applied_count += 1
+                    else:
+                        failed_count += 1
+                        self.report({'WARNING'}, f"Failed smoothing '{shape_key_name}' on '{target_obj.name}'")
+                except Exception as e:
+                    failed_count += 1
+                    self.report({'WARNING'}, f"Error on '{shape_key_name}'/'{target_obj.name}': {str(e)[:50]}")
+
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                area.tag_redraw()
+
+        if applied_count > 0:
+            self.report({'INFO'}, f"Applied smoothing to {applied_count} shape key(s)" +
+                        (f", {failed_count} failed" if failed_count else ""))
+            return {'FINISHED'}
+        else:
+            self.report({'WARNING'}, "No smoothing masks found to apply")
+            return {'CANCELLED'}
+
+
 class MESH_OT_delete_smoothing_mask(Operator):
     """Delete the smoothing mask vertex group for the current shape key"""
     bl_idname = "mesh.delete_smoothing_mask"
@@ -889,5 +953,6 @@ def get_classes():
         MESH_OT_batch_transfer_shape_keys,
         MESH_OT_generate_smoothing_mask,
         MESH_OT_apply_smoothing_mask,
+        MESH_OT_apply_all_smoothing,
         MESH_OT_delete_smoothing_mask,
     ]

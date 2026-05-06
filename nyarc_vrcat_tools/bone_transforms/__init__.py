@@ -51,6 +51,10 @@ def register_module():
         all_classes.extend(ui_module.UI_CLASSES)
         print(f"[DEBUG] Added {len(ui_module.UI_CLASSES)} UI classes")
     
+    if PRESETS_AVAILABLE and hasattr(presets_module, 'PRESET_UL_CLASSES'):
+        all_classes.extend(presets_module.PRESET_UL_CLASSES)
+        print(f"[DEBUG] Added {len(presets_module.PRESET_UL_CLASSES)} preset UIList classes")
+
     if PRESETS_AVAILABLE and hasattr(presets_module, 'SCROLL_CLASSES'):
         all_classes.extend(presets_module.SCROLL_CLASSES)
         print(f"[DEBUG] Added {len(presets_module.SCROLL_CLASSES)} scroll classes")

@@ -1,153 +1,160 @@
 # NYARC VRCat Tools
 
-**"Professional" Blender addon for VRChat avatar creation workflows**
+Blender addon for VRChat avatar creation workflows.
 
-I am new to Github / Dev. Please go easy on me. This Project was Developed with help of Claude Code.
+I'm new to Github and dev in general. This project was developed with help of Claude Code.
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 [![Blender](https://img.shields.io/badge/Blender-4.2+-orange.svg)](https://www.blender.org/)
 [![Release](https://img.shields.io/github/v/release/Myarcer/nyarc-vrcat-tools)](https://github.com/Myarcer/nyarc-vrcat-tools/releases)
 
-## ✨ Features
+## Features
 
-### 🦴 **Bone Transform Saver**
-The core module for CATS-like pose mode editing and bone transformation management:
-- **Pose Mode Management**: CATS-style start/stop pose mode editing with automatic context switching
-- **Intelligent Bone Mapping**: Fuzzy matching for automatic bone name resolution across different armature naming conventions
-- **Advanced Preset Management**: Scrollable UI with organized preset categories and easy sharing
-- **Pose History Tracking**: Complete rollback system with metadata storage for non-destructive editing
-- **VRChat Compatibility**: Full bone validation and VRChat naming standard compliance
-- **Inherit Scale Controls**: Smart bone scaling inheritance management with visual indicators
+### Bone Transform Saver
 
-### 🔷 **Shape Key Transfer**
-Professional-grade shape key transfer system with real-time synchronization:
-- **Robust Harmonic Transfer**: Advanced harmonic inpainting algorithm for seamless transfer across topology mismatches
+Core module for pose mode editing and bone transform management:
+
+- **Pose Mode**: CATS-style start/stop pose mode with automatic context switching
+- **Bone Mapping**: Fuzzy name matching that works across different armature naming conventions
+- **Preset Management**: Scrollable list with organized categories and easy sharing
+- **Pose History**: Rollback system for non-destructive editing
+- **VRChat Compatibility**: Validates bones against VRChat naming standards
+- **Inherit Scale Controls**: Manage bone scale inheritance with visual feedback
+
+### Shape Key Transfer
+
+Shape key transfer system with real-time sync:
+
+- **Robust Harmonic Transfer**: Harmonic inpainting that handles topology differences between meshes
   - Auto-detects disconnected mesh islands (buttons, patches) and prevents clipping artifacts
-  - Visual debug mode showing match quality with color-coded vertex visualization
-  - Auto-tune feature for optimal distance threshold calculation
-- **Surface Deform Transfer**: High-quality shape key transfer using Blender's Surface Deform modifier
-- **Live Synchronization**: Real-time shape key value sync between source and target meshes
-- **Batch Operations**: Multi-target, multi-shape key transfer workflows for efficient avatar creation
-- **Automatic Mesh Preparation**: Smart mesh compatibility checking and Surface Deform setup
-- **Expandable Help System**: Built-in guidance with collapsible instruction panels
+  - Visual debug mode with color-coded vertex match quality
+  - Auto-tune to find the best distance threshold automatically
+- **Surface Deform Transfer**: Uses Blender's Surface Deform modifier for accurate transfer
+- **Live Sync**: Real-time shape key value sync between source and target
+- **Batch Transfer**: Transfer to multiple targets at once
+- **Mesh Prep**: Checks mesh compatibility and sets up Surface Deform automatically
+- **Built-in Help**: Collapsible instruction panels inside the addon
 
-### 🔄 **Mirror Flip**
-One-click mirroring system for accessories and bone structures:
-- **Smart Accessory Flipping**: Intelligent detection and duplication of .L/.R accessories
-- **Bone Chain Mirroring**: Advanced bone chain analysis and symmetrical duplication
-- **Auto-Detection System**: Automatic identification of flip candidates with safety validation
-- **Combined Operations**: Simultaneous mesh and bone flipping for complete workflows
+### Mirror Flip
 
-### 📤 **Clean FBX Export (CATS-Style)**
-Direct FBX export with CATS Blender Plugin / Avatar Toolkit-compatible settings:
-- **CATS-Compatible Settings**: Matched to [CATS Blender Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin) and [Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit) export behavior
+One-click mirror system for accessories and bones:
+
+- **Accessory Flip**: Detects and duplicates .L/.R accessories
+- **Bone Chain Mirror**: Analyzes and duplicates bone chains symmetrically
+- **Auto-Detection**: Finds flip candidates automatically with safety checks
+- **Combined**: Flip mesh and bones together in one step
+
+### Clean FBX Export
+
+FBX export with settings compatible with CATS and Avatar Toolkit:
+
+- **CATS-Compatible Settings**: Matched to [CATS Blender Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin) and [Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit) export behavior (note: both are no longer actively developed)
 - **Name Suffix Stripping**: Automatically removes .001/.016-style numeric suffixes from all names
-- **Non-Destructive**: Names are renamed temporarily during export and restored after — no scene copy needed
+- **Non-Destructive**: Names are renamed temporarily during export and restored after. No scene copy needed.
 - **Unity/VRChat Ready**: `FBX_SCALE_ALL`, no animation bake, `armature_nodetype='NULL'`, and other Unity-optimal defaults
 
-### 📤 **Armature Diff Export** *(Work in Progress)*
-Advanced armature difference calculation and export system:
-- **Difference Calculation**: Precise mathematical difference detection between armature states
-- **Export Integration**: Seamless integration with existing VRChat workflows
-- **Coordinate Space Handling**: Proper coordinate space conversion for accurate results
+### Armature Diff Export *(Work in Progress)*
 
-## 🚀 Installation
+Calculates armature differences and exports them:
 
-### **Automatic Installation (Recommended)**
+- **Difference Calculation**: Detects differences between armature states
+- **Coordinate Space**: Converts coordinate spaces correctly for accurate results
+
+## Installation
+
+### Automatic (Recommended)
+
 1. Download the latest release ZIP: [Releases](https://github.com/Myarcer/nyarc-vrcat-tools/releases)
 2. In Blender: `Edit` → `Preferences` → `Add-ons` → `Install...`
 3. Select the downloaded ZIP file
 4. Enable "NYARC VRCat Tools" in the add-ons list
 
-### **Manual Installation**
+### Manual
+
 1. Clone or download this repository
 2. Copy the `nyarc_vrcat_tools` folder to your Blender addons directory:
    - **Windows**: `%APPDATA%\Blender Foundation\Blender\[VERSION]\scripts\addons\`
    - **macOS**: `~/Library/Application Support/Blender/[VERSION]/scripts/addons/`
    - **Linux**: `~/.config/blender/[VERSION]/scripts/addons/`
 
-## 🔄 Updating the Addon
+## Updating the Addon
 
-When installing a new version over an existing installation, you need to reload the addon for changes to take effect:
+When installing a new version, you need to reload the addon for changes to take effect.
 
 **Method 1: Disable/Enable (Quick)**
 1. Go to `Edit` → `Preferences` → `Add-ons`
 2. Find "NYARC VRCat Tools"
-3. **Uncheck** the checkbox to disable
-4. **Check** it again to enable
-5. New version is now active! ✅
+3. Uncheck the checkbox to disable
+4. Check it again to enable
+5. New version is now active.
 
-**Method 2: Reload Scripts (Alternative)**
+**Method 2: Reload Scripts**
 - Press `F3` and search for "Reload Scripts"
 
-**Method 3: Restart Blender (Most Thorough)**
+**Method 3: Restart Blender**
 - Save your work and restart Blender
 
-> 💡 **Why is this needed?** This is standard for all Blender addons due to Python's module caching system. The addon includes automatic hot-reload support that activates when you disable/enable it. This is the same workflow used by professional addons like Hard Ops, Node Wrangler, and others.
+> **Why is this needed?** Python caches modules, so reloading is required to pick up changes. Disabling and enabling the addon triggers its built-in hot-reload.
 
-## 🎯 Usage
+## Usage
 
-### **Quick Start**
+### Quick Start
+
 1. Select your avatar armature
 2. Open `3D Viewport` → `N Panel` → `NYARC Tools`
 3. Use **Bone Transform Saver** for precise armature modifications
 4. Apply **Shape Key Transfer** for facial expression workflows
 5. Export differences with **Armature Diff Export**
 
-### **Professional Workflows**
+### Workflows
+
 - **Avatar Setup**: Bone transforms → Shape key transfer → Mirror accessories
 - **Precision Export**: Diff calculation → VRChat validation → Final export
 - **Team Collaboration**: Preset sharing → Version tracking → Rollback support
 
-## 🛠️ System Requirements
+## System Requirements
 
-- **Blender**: 4.2 LTS or newer (required for full feature support)
+- **Blender**: 4.2 LTS or newer
 - **Platform**: Windows, macOS, Linux
 - **Memory**: 4GB RAM minimum, 8GB+ recommended for complex avatars
 
-## 📚 Documentation
+## Documentation
 
-- **[Changelog](CHANGELOG.md)**: Version history and updates
-- **[Contributing Guidelines](CONTRIBUTING.md)**: Development guidelines and contribution process
-- **[License](LICENSE)**: MIT License details
+- **[Changelog](CHANGELOG.md)**: Version history
+- **[Contributing Guidelines](CONTRIBUTING.md)**: How to contribute
+- **[License](LICENSE)**: GPL-3.0
 
-For detailed usage instructions, see the feature descriptions above and the in-addon help panels.
+## Contributing
 
-## 🤝 Contributing
+See [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### **Development Setup**
+**Development Setup**
 1. Fork this repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
+2. Create a feature branch: `git checkout -b feature/my-feature`
 3. Make your changes and test thoroughly
-4. Commit with descriptive messages: `git commit -m "feat: add amazing feature"`
-5. Push to your branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+4. Commit with descriptive messages: `git commit -m "feat: add my feature"`
+5. Push and open a Pull Request
 
-## 📄 License
+## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
 
-This project incorporates code from [Robust Weight Transfer](https://github.com/sentfromspacevr/robust-weight-transfer) (GPL-3.0)
-and takes inspiration from [RinvosBlendshapeTransfer](https://github.com/neongm/RinvosBlendshapeTransfer).
+Incorporates code from [Robust Weight Transfer](https://github.com/sentfromspacevr/robust-weight-transfer) (GPL-3.0) and takes inspiration from [RinvosBlendshapeTransfer](https://github.com/neongm/RinvosBlendshapeTransfer).
 
-## 🌟 Acknowledgments
+## Acknowledgments
 
 - **VRChat Community** for feedback and feature requests
-- **Blender Foundation** for the amazing 3D creation platform
+- **Blender Foundation** for the 3D creation platform
 - **[CATS Blender Plugin](https://github.com/teamneoneko/Cats-Blender-Plugin)** for workflow inspiration and FBX export settings reference
-- **[Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit)** for the next-gen CATS-successor reference
-- **Avatar Tools Community** for testing and validation
-- **[SENT Robust Weight Transfer](https://github.com/sentfromspacevr/robust-weight-transfer)** for harmonic inpainting-based robust shape key transfer algorithm
-- **[RinvosBlendshapeTransfer](https://github.com/neongm/RinvosBlendshapeTransfer)** for ideas and optimizations on standard blendshape transfer
+- **[Avatar Toolkit](https://git.disroot.org/Neoneko/Avatar-Toolkit)** for the CATS-successor reference
+- **[SENT Robust Weight Transfer](https://github.com/sentfromspacevr/robust-weight-transfer)** for the harmonic inpainting shape key transfer algorithm
+- **[RinvosBlendshapeTransfer](https://github.com/neongm/RinvosBlendshapeTransfer)** for ideas on standard blendshape transfer
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Myarcer/nyarc-vrcat-tools/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Myarcer/nyarc-vrcat-tools/discussions)
-- **Documentation**: [Wiki](https://github.com/Myarcer/nyarc-vrcat-tools/wiki)
 
 ---
 
-**Made with ❤️ for the VRChat community**
+Made for the VRChat community.
