@@ -32,7 +32,7 @@ import copy
 import os
 from mathutils import Matrix, Vector, Quaternion
 from bpy.types import Operator, PropertyGroup
-from bpy.props import StringProperty, IntProperty, EnumProperty, CollectionProperty
+from bpy.props import StringProperty, IntProperty, CollectionProperty
 
 from .manager import (
     get_available_presets,
@@ -127,16 +127,6 @@ def _preset_has_precision(preset_data):
     return False
 
 
-def _available_presets_enum(self, context):
-    """EnumProperty items callback for the add-preset dropdown."""
-    items = []
-    for name in get_available_presets():
-        items.append((name, name, ""))
-    if not items:
-        items.append(("", "(no presets)", ""))
-    return items
-
-
 # ---------------------------------------------------------------------------
 # Operators
 # ---------------------------------------------------------------------------
@@ -147,31 +137,58 @@ class ARMATURE_OT_preset_merge_add(Operator):
     bl_label = "Add Preset to Merge"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    preset_name: EnumProperty(
-        name="Preset",
-        description="Preset to add to the merge list",
-        items=_available_presets_enum,
-    )
+    # Index into nyarc_tools_props.bone_preset_list
+    selected_index: IntProperty(default=0, min=0)
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self, width=300)
+        # Sync the preset list from disk (safe here — operator invoke, not draw)
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if props is not None:
+            presets = get_available_presets()
+            props.bone_preset_list.clear()
+            for name in presets:
+                item = props.bone_preset_list.add()
+                item.name = name
+            if self.selected_index >= len(presets):
+                self.selected_index = max(0, len(presets) - 1)
+        return context.window_manager.invoke_props_dialog(self, width=320)
 
     def draw(self, context):
         layout = self.layout
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if props is None or not props.bone_preset_list:
+            layout.label(text="No presets found — save one first", icon='INFO')
+            return
         layout.label(text="Pick a preset to append:")
-        layout.prop(self, "preset_name", text="")
-        layout.label(text="Order = sequential apply-as-rest order. Matrices compose left-to-right.", icon='INFO')
+        layout.template_list(
+            "PRESET_UL_list", "merge_picker",
+            props, "bone_preset_list",
+            self, "selected_index",
+            rows=6, maxrows=10,
+            type='DEFAULT',
+        )
+        layout.label(text="Order = sequential apply-as-rest order.", icon='INFO')
 
     def execute(self, context):
         coll, _, _ = _get_merge_state(context)
         if coll is None:
             self.report({'ERROR'}, "Merge list not registered")
             return {'CANCELLED'}
-        if not self.preset_name:
+
+        props = getattr(context.scene, 'nyarc_tools_props', None)
+        if props is None or not props.bone_preset_list:
+            self.report({'WARNING'}, "No presets available")
+            return {'CANCELLED'}
+        if self.selected_index < 0 or self.selected_index >= len(props.bone_preset_list):
             self.report({'WARNING'}, "No preset selected")
             return {'CANCELLED'}
+
+        preset_name = props.bone_preset_list[self.selected_index].name
         item = coll.add()
-        item.name = self.preset_name
+        item.name = preset_name
+
+        # Re-open dialog so user can immediately add another preset
+        bpy.ops.armature.preset_merge_add('INVOKE_DEFAULT')
         return {'FINISHED'}
 
 
