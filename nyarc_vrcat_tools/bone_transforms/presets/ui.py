@@ -101,8 +101,12 @@ def draw_presets_ui(layout, context, props):
                                               text=button_text, icon=button_icon)
                 load_op.preset_name = selected_preset
 
+                rename_op = action_row.operator("armature.rename_preset",
+                                                text="", icon='GREASEPENCIL')
+                rename_op.old_name = selected_preset
+
                 delete_op = action_row.operator("armature.delete_bone_transforms",
-                                                text="Delete", icon='X')
+                                                text="", icon='X')
                 delete_op.preset_name = selected_preset
 
                 # Precision correction options (only if selected preset has precision data)
