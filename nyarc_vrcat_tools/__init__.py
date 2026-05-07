@@ -2,7 +2,7 @@ bl_info = {
     "name": "Nyarc VRCat Tools",
     "blender": (4, 0, 0),
     "category": "3D View",
-    "version": (0, 2, 11),
+    "version": (0, 2, 12),
     "author": "Nyarc",
     "description": "Small quality-of-life addons for heavy VRCat avatar editing - Shape Key Transfer, Bone Transform Saver, Armature Diff Export, and more!",
     "location": "View3D > Sidebar > Nyarc VRCat Tools",
@@ -192,8 +192,10 @@ def clear_debug_vertex_colors(context, target_obj=None):
 
         # Clear Match Quality Debug vertex colors
         for obj in objects_to_clear:
-            if obj and obj.type == 'MESH' and obj.data.vertex_colors:
-                if "RobustTransfer_MatchQuality" in obj.data.vertex_colors:
+            if obj and obj.type == 'MESH':
+                # Dual compat: color_attributes (4.3+) or vertex_colors (4.2)
+                vcol_collection = getattr(obj.data, 'color_attributes', None) or getattr(obj.data, 'vertex_colors', None)
+                if vcol_collection and "RobustTransfer_MatchQuality" in vcol_collection:
                     clear_match_quality_debug(obj)
 
     except Exception as e:

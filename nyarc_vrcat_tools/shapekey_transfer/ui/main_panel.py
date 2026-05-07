@@ -4,6 +4,44 @@
 import bpy
 from .preview_ui import draw_live_preview_ui
 
+# Blender 4.4 renamed SEQUENCE_COLOR_* to STRIP_COLOR_*
+_COLOR_ICON_02 = 'STRIP_COLOR_02' if bpy.app.version >= (4, 4, 0) else 'SEQUENCE_COLOR_02'
+
+
+def _draw_deps_install_ui(layout):
+    """Draw dependency install or restart UI for robust transfer"""
+    from ..robust import get_missing_dependencies, deps_installed_on_disk
+
+    if deps_installed_on_disk():
+        # Deps exist on disk but aren't loaded — need restart
+        restart_box = layout.box()
+        restart_col = restart_box.column(align=True)
+        restart_col.alert = True
+        restart_col.label(text="Dependencies installed!", icon='CHECKMARK')
+        restart_col.label(text="Restart Blender to activate Robust Transfer")
+        restart_col.separator(factor=0.5)
+        info_col = restart_col.column(align=True)
+        info_col.scale_y = 0.7
+        info_col.alert = False
+        info_col.label(text="Use: F3 > Reload Scripts, or restart Blender", icon='INFO')
+    else:
+        # Deps not installed yet — show installer
+        missing = get_missing_dependencies()
+        warning_box = layout.box()
+        warning_col = warning_box.column(align=True)
+        warning_col.alert = True
+        warning_col.label(text=f"Missing dependencies: {', '.join(missing)}", icon='ERROR')
+        warning_col.label(text="Install required libraries to use Robust Transfer")
+        warning_col.separator()
+        install_row = warning_col.row()
+        install_row.scale_y = 1.5
+        install_row.operator("mesh.install_robust_dependencies", text="Install Dependencies", icon='IMPORT')
+        warning_col.separator(factor=0.5)
+        info_col = warning_col.column(align=True)
+        info_col.scale_y = 0.7
+        info_col.label(text="This will download scipy and robust-laplacian", icon='INFO')
+        info_col.label(text="Takes ~30-60 seconds, restart Blender after")
+
 
 def _get_shape_key_status_on_targets(props, shape_key_name):
     """Get detailed status of shape key across all target meshes
@@ -194,28 +232,14 @@ def draw_single_target_ui(layout, context, props):
             robust_header = robust_box.row()
             robust_header.label(text="Robust Transfer Settings", icon='SMOOTHCURVE')
             
-            # Show installer if dependencies missing
+            # Show installer or restart UI if dependencies missing
             if not DEPENDENCIES_AVAILABLE:
-                missing = get_missing_dependencies()
-                warning_box = robust_box.box()
-                warning_col = warning_box.column(align=True)
-                warning_col.alert = True
-                warning_col.label(text=f"Missing dependencies: {', '.join(missing)}", icon='ERROR')
-                warning_col.label(text="Install required libraries to use Robust Transfer")
-                warning_col.separator()
-                install_row = warning_col.row()
-                install_row.scale_y = 1.5
-                install_row.operator("mesh.install_robust_dependencies", text="Install Dependencies", icon='IMPORT')
-                warning_col.separator(factor=0.5)
-                info_col = warning_col.column(align=True)
-                info_col.scale_y = 0.7
-                info_col.label(text="This will download scipy and robust-laplacian", icon='INFO')
-                info_col.label(text="Takes ~30-60 seconds, restart Blender after")
+                _draw_deps_install_ui(robust_box)
                 return  # Don't show settings if deps missing
-            
+
             robust_col = robust_box.column(align=True)
             robust_col.scale_y = 0.9
-            
+
             # Distance threshold with auto-tune toggle
             dist_row = robust_col.row(align=True)
             sub = dist_row.row(align=True)
@@ -561,11 +585,7 @@ def draw_multi_target_ui(layout, context, props):
                         # Split the row to show checkbox + yellow warning icon + text separately
                         row.prop(key_item, "selected", text="")
                         icon_row = row.row()
-                        # Test different sequence colors to find yellow
-                        # icon_row.label(text=key_item.name, icon='INFO')        # Yellow triangle with !
-                        # icon_row.label(text=key_item.name, icon='SEQUENCE_COLOR_01')  # Try color 1
-                        icon_row.label(text=key_item.name, icon='SEQUENCE_COLOR_02')  # Try color 2 (might be yellow)
-                        # icon_row.label(text=key_item.name, icon='SEQUENCE_COLOR_04')  # Try color 4
+                        icon_row.label(text=key_item.name, icon=_COLOR_ICON_02)
                     else:  # "none"
                         # Red text - no targets have it
                         row.alert = True
@@ -641,23 +661,9 @@ def draw_multi_target_ui(layout, context, props):
             robust_header = robust_box.row()
             robust_header.label(text="Robust Transfer Settings", icon='SMOOTHCURVE')
 
-            # Show installer if dependencies missing
+            # Show installer or restart UI if dependencies missing
             if not DEPENDENCIES_AVAILABLE:
-                missing = get_missing_dependencies()
-                warning_box = robust_box.box()
-                warning_col = warning_box.column(align=True)
-                warning_col.alert = True
-                warning_col.label(text=f"Missing dependencies: {', '.join(missing)}", icon='ERROR')
-                warning_col.label(text="Install required libraries to use Robust Transfer")
-                warning_col.separator()
-                install_row = warning_col.row()
-                install_row.scale_y = 1.5
-                install_row.operator("mesh.install_robust_dependencies", text="Install Dependencies", icon='IMPORT')
-                warning_col.separator(factor=0.5)
-                info_col = warning_col.column(align=True)
-                info_col.scale_y = 0.7
-                info_col.label(text="This will download scipy and robust-laplacian", icon='INFO')
-                info_col.label(text="Takes ~30-60 seconds, restart Blender after")
+                _draw_deps_install_ui(robust_box)
             else:
                 # Show robust transfer settings
                 robust_col = robust_box.column(align=True)

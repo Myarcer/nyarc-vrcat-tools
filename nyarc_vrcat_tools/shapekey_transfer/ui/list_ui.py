@@ -4,6 +4,9 @@
 import bpy
 from bpy.types import UIList
 
+# Blender 4.4 renamed SEQUENCE_COLOR_* to STRIP_COLOR_*
+_COLOR_ICON_02 = 'STRIP_COLOR_02' if bpy.app.version >= (4, 4, 0) else 'SEQUENCE_COLOR_02'
+
 
 class SHAPEKEY_UL_selection_list(UIList):
     """UI List for scrollable shape key selection"""
@@ -25,11 +28,7 @@ class SHAPEKEY_UL_selection_list(UIList):
             elif shape_key_status == "some":
                 # Try different sequence colors to find yellow
                 partial_row = row.row()
-                # Test sequence colors - SEQUENCE_COLOR_05 was blue, try others
-                # partial_row.label(text=item.name, icon='INFO')        # Yellow triangle with !
-                # partial_row.label(text=item.name, icon='SEQUENCE_COLOR_01')  # Try color 1
-                partial_row.label(text=item.name, icon='SEQUENCE_COLOR_02')  # Try color 2 (might be yellow)
-                # partial_row.label(text=item.name, icon='SEQUENCE_COLOR_04')  # Try color 4
+                partial_row.label(text=item.name, icon=_COLOR_ICON_02)
             else:  # "none"
                 # Red text - no targets have it  
                 red_row = row.row()

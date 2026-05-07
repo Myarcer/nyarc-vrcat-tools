@@ -5,7 +5,7 @@ Blender addon for VRChat avatar creation workflows.
 I'm new to Github and dev in general. This project was developed with help of Claude Code.
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Blender](https://img.shields.io/badge/Blender-4.2+-orange.svg)](https://www.blender.org/)
+[![Blender](https://img.shields.io/badge/Blender-4.2.1%20LTS%20|%205.0-orange.svg)](https://www.blender.org/)
 [![Release](https://img.shields.io/github/v/release/Myarcer/nyarc-vrcat-tools)](https://github.com/Myarcer/nyarc-vrcat-tools/releases)
 
 ## Features
@@ -114,7 +114,8 @@ When installing a new version, you need to reload the addon for changes to take 
 
 ## System Requirements
 
-- **Blender**: 4.2 LTS or newer
+- **Blender**: 4.2.1 LTS or 5.0 (fully supported)
+- **Blender 5.1**: Addon works, but **Robust Transfer is not available** due to a Blender 5.1 DLL loading restriction that prevents scipy from importing. All other features work normally. See [BLENDER_51_SCIPY_ISSUE.md](BLENDER_51_SCIPY_ISSUE.md) for technical details.
 - **Platform**: Windows, macOS, Linux
 - **Memory**: 4GB RAM minimum, 8GB+ recommended for complex avatars
 
