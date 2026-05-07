@@ -145,14 +145,14 @@ def unregister_modules():
 def draw_modules(layout, context):
     """Draw UI for all available modules"""
     props = context.scene.nyarc_tools_props
-    
+
     # Shape Key Transfer UI
     if SHAPEKEY_AVAILABLE:
         shapekey_box = layout.box()
         shapekey_header = shapekey_box.row()
         shapekey_header.prop(props, "shapekey_show_ui", icon='TRIA_DOWN' if props.shapekey_show_ui else 'TRIA_RIGHT', icon_only=True)
         shapekey_header.label(text="Shape Key Transfer", icon='SHAPEKEY_DATA')
-        
+
         if props.shapekey_show_ui:
             # Use the module's own draw_ui function if available
             if hasattr(shapekey_module, 'draw_ui'):
@@ -160,17 +160,17 @@ def draw_modules(layout, context):
             else:
                 # Fallback to basic UI
                 draw_shapekey_ui(shapekey_box, context, props)
-    
+
     # Pose Mode Bone Editor (main category)
     if BONE_TRANSFORM_SAVER_AVAILABLE:
         bone_box = layout.box()
         bone_header = bone_box.row()
         bone_header.prop(props, "bone_show_ui", icon='TRIA_DOWN' if props.bone_show_ui else 'TRIA_RIGHT', icon_only=True)
         bone_header.label(text="Pose Mode Bone Editor", icon='POSE_HLT')
-        
+
         if props.bone_show_ui:
             draw_bone_saver_ui(bone_box, context, props)
-    
+
     # Mirror Flip Tools UI
     if MIRROR_FLIP_AVAILABLE:
         mirror_flip_box = layout.box()

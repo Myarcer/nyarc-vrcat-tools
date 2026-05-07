@@ -26,8 +26,8 @@ class MESH_OT_install_robust_dependencies(Operator):
         # Create deps folder if it doesn't exist
         os.makedirs(deps_dir, exist_ok=True)
 
-        # Packages to install
-        packages = ['scipy', 'robust-laplacian']
+        # Packages to install (robust-laplacian MUST be 1.0.0 — v1.1.0 crashes Blender)
+        packages = ['scipy', 'robust-laplacian==1.0.0']
 
         self.report({'INFO'}, "Installing dependencies... This may take 30-60 seconds")
 
@@ -54,7 +54,7 @@ class MESH_OT_install_robust_dependencies(Operator):
             self.report({'ERROR'}, "Try manual install: see console for instructions")
             print("\n=== MANUAL INSTALLATION ===")
             print(f"Run in terminal:")
-            print(f'  {sys.executable} -m pip install --target "{deps_dir}" scipy robust-laplacian')
+            print(f'  {sys.executable} -m pip install --target "{deps_dir}" scipy robust-laplacian==1.0.0')
             return {'CANCELLED'}
 
         except Exception as e:

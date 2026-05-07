@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## v0.2.12 (2026-05-07)
+
+### Compatibility
+* feat: Blender 5.0/5.1 compatibility — addon now works on Blender 4.2.1 LTS through 5.1
+* fix: migrate vertex_colors API to dual-compat (color_attributes on 4.3+, vertex_colors on 4.2)
+* fix: SEQUENCE_COLOR_* icons renamed to STRIP_COLOR_* in Blender 4.4 — shape key list items were blank on 5.0+
+
 ## v0.2.9 (2026-04-26)
 
 ### Bug Fixes

@@ -1,10 +1,54 @@
 """
 Debug Visualization
 Create vertex colors showing match quality for parameter tuning
+
+Dual-compat: works on Blender 4.2 LTS (vertex_colors) and 5.0+ (color_attributes)
 """
 
 import bpy
 import numpy as np
+
+
+def _has_color_attributes(mesh):
+    """Check if mesh uses the new color_attributes API (Blender 4.3+)"""
+    return hasattr(mesh, 'color_attributes')
+
+
+def _get_vcol_layer(mesh, name):
+    """Get a vertex color layer by name, using whichever API is available"""
+    if _has_color_attributes(mesh):
+        return mesh.color_attributes.get(name)
+    return mesh.vertex_colors.get(name)
+
+
+def _new_vcol_layer(mesh, name):
+    """Create a new vertex color layer, using whichever API is available"""
+    if _has_color_attributes(mesh):
+        return mesh.color_attributes.new(name=name, type='BYTE_COLOR', domain='CORNER')
+    return mesh.vertex_colors.new(name=name)
+
+
+def _remove_vcol_layer(mesh, layer):
+    """Remove a vertex color layer, using whichever API is available"""
+    if _has_color_attributes(mesh):
+        mesh.color_attributes.remove(layer)
+    else:
+        mesh.vertex_colors.remove(layer)
+
+
+def _set_active_vcol(mesh, layer):
+    """Set the active vertex color layer for viewport display"""
+    if _has_color_attributes(mesh):
+        mesh.color_attributes.active_color = layer
+    else:
+        mesh.vertex_colors.active = layer
+
+
+def _has_any_vcol(mesh):
+    """Check if mesh has any vertex color layers"""
+    if _has_color_attributes(mesh):
+        return len(mesh.color_attributes) > 0
+    return len(mesh.vertex_colors) > 0
 
 
 def create_match_quality_debug(target_obj, matched_indices, distances, distance_threshold):
@@ -21,10 +65,9 @@ def create_match_quality_debug(target_obj, matched_indices, distances, distance_
 
     # Create or get vertex color layer
     vcol_name = "RobustTransfer_MatchQuality"
-    if vcol_name not in mesh.vertex_colors:
-        vcol_layer = mesh.vertex_colors.new(name=vcol_name)
-    else:
-        vcol_layer = mesh.vertex_colors[vcol_name]
+    vcol_layer = _get_vcol_layer(mesh, vcol_name)
+    if vcol_layer is None:
+        vcol_layer = _new_vcol_layer(mesh, vcol_name)
 
     # Build color map
     N = len(mesh.vertices)
@@ -60,7 +103,7 @@ def create_match_quality_debug(target_obj, matched_indices, distances, distance_
             vcol_layer.data[loop_idx].color = color_map[vert_idx]
 
     # Set as active for viewing
-    mesh.vertex_colors.active = vcol_layer
+    _set_active_vcol(mesh, vcol_layer)
 
     # Switch viewport shading to show vertex colors properly
     for area in bpy.context.screen.areas:
@@ -92,13 +135,13 @@ def clear_match_quality_debug(target_obj):
     vcol_name = "RobustTransfer_MatchQuality"
 
     # Remove vertex color layer if it exists
-    if vcol_name in mesh.vertex_colors:
-        vcol_layer = mesh.vertex_colors[vcol_name]
-        mesh.vertex_colors.remove(vcol_layer)
+    vcol_layer = _get_vcol_layer(mesh, vcol_name)
+    if vcol_layer is not None:
+        _remove_vcol_layer(mesh, vcol_layer)
         print(f"Removed debug visualization: {vcol_name}")
 
         # Switch viewport back to material shading if no other vertex colors exist
-        if len(mesh.vertex_colors) == 0:
+        if not _has_any_vcol(mesh):
             for area in bpy.context.screen.areas:
                 if area.type == 'VIEW_3D':
                     for space in area.spaces:
