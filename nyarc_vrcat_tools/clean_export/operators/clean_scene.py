@@ -432,6 +432,13 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
             prev_active = context.view_layer.objects.active
             prev_selected = [(o, o.select_get()) for o in context.scene.objects]
 
+            # Switch to Object Mode if needed — bpy.ops.export_scene.fbx
+            # requires it, and we can't select objects from Edit/Pose mode.
+            prev_mode = None
+            if context.active_object and context.active_object.mode != 'OBJECT':
+                prev_mode = context.active_object.mode
+                bpy.ops.object.mode_set(mode='OBJECT')
+
             for obj in all_objects:
                 old_vp = obj.hide_viewport
                 old_sel = obj.hide_select
@@ -448,7 +455,8 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
                         pass
                 vis_overrides.append((obj, old_vp, old_sel, old_vl))
 
-            bpy.ops.object.select_all(action='DESELECT')
+            for o in context.view_layer.objects:
+                o.select_set(False)
             for obj in all_objects:
                 try:
                     obj.select_set(True)
@@ -540,6 +548,13 @@ class EXPORT_OT_export_clean_fbx(Operator, ExportHelper):
             for bone, old in reversed(bone_renames):
                 try:
                     bone.name = old
+                except Exception:
+                    pass
+
+            # Restore previous mode (e.g. Edit Mode, Pose Mode)
+            if prev_mode is not None:
+                try:
+                    bpy.ops.object.mode_set(mode=prev_mode)
                 except Exception:
                     pass
 
