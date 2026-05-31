@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## v0.2.13 (2026-05-31)
+
+### Bug Fixes
+* fix(robust-transfer): shape keys are now transform-correct — displacements are converted source-local→world on extract and world→target-local on apply. Targets with a non-identity world transform (e.g. a garment parented to an armature scaled 0.01) previously got near-zero "NONE" shape keys; now they deform correctly. Affects Robust Transfer (single + batch).
+* fix(preset-merge): pose-history "export as preset" now tags presets as flattened, so they can be merged
+* feat(preset-merge): non-flattened sources no longer hard-rejected — the merge dialog warns and requires a confirm checkbox instead
+
 ## v0.2.12 (2026-05-07)
 
 ### Compatibility

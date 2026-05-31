@@ -9,11 +9,18 @@ import numpy as np
 
 def extract_shape_key_displacements(obj, shape_key_name):
     """
-    Extract displacement vectors from shape key.
+    Extract displacement vectors from shape key, in WORLD space.
+
+    Shape-key coords are stored in the object's LOCAL space. Correspondence and
+    inpainting operate in WORLD space (see get_mesh_data_world_space), so the
+    displacement deltas must be rotated/scaled by the object's world matrix.
+    Otherwise an object whose world transform differs from identity (e.g. a
+    garment parented to an armature scaled 0.01) produces shape keys that are
+    off by that scale -- collapsing to a near-zero "NONE" result on the target.
 
     Returns:
-        displacements: (N, 3) array of delta vectors
-        basis_coords: (N, 3) array of basis shape coordinates
+        displacements: (N, 3) array of WORLD-space delta vectors
+        basis_coords: (N, 3) array of LOCAL-space basis shape coordinates
     """
     mesh = obj.data
 
@@ -29,12 +36,15 @@ def extract_shape_key_displacements(obj, shape_key_name):
     basis = mesh.shape_keys.key_blocks[0]  # Basis shape
     shape_key = mesh.shape_keys.key_blocks[shape_key_name]
 
-    # Extract coordinates
+    # Extract coordinates (local space)
     basis_verts = np.array([v.co for v in basis.data])
     shape_verts = np.array([v.co for v in shape_key.data])
 
-    # Compute displacements
-    displacements = shape_verts - basis_verts
+    # Compute local displacements, then rotate/scale into world space.
+    # Use the 3x3 part of matrix_world (no translation for direction vectors).
+    local_displacements = shape_verts - basis_verts
+    world_3x3 = np.array(obj.matrix_world.to_3x3())
+    displacements = local_displacements @ world_3x3.T
 
     return displacements, basis_verts
 
@@ -127,7 +137,7 @@ def apply_shape_key_to_mesh(obj, shape_key_name, displacements):
     Args:
         obj: Blender object
         shape_key_name: Name for new/updated shape key
-        displacements: (N, 3) displacement vectors
+        displacements: (N, 3) WORLD-space displacement vectors
     """
     mesh = obj.data
 
@@ -141,9 +151,16 @@ def apply_shape_key_to_mesh(obj, shape_key_name, displacements):
     else:
         shape_key = obj.shape_key_add(name=shape_key_name, from_mix=False)
 
-    # Apply displacements (in object space)
+    # Displacements arrive in WORLD space; shape-key coords live in LOCAL space.
+    # Convert world -> local with the inverse of the 3x3 world matrix so the
+    # delta magnitude is correct regardless of the object's world transform.
+    # (Without this, a target with non-identity world scale gets near-zero
+    #  "NONE" shape keys -- e.g. a garment under an armature scaled 0.01.)
+    world_3x3_inv = np.array(obj.matrix_world.to_3x3().inverted())
+    local_displacements = displacements @ world_3x3_inv.T
+
     basis_verts = np.array([v.co for v in mesh.vertices])
-    new_verts = basis_verts + displacements
+    new_verts = basis_verts + local_displacements
 
     for i, coord in enumerate(new_verts):
         shape_key.data[i].co = coord
