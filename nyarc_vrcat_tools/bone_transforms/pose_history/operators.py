@@ -370,7 +370,11 @@ class ARMATURE_OT_export_pose_history_to_preset(Operator):
                 "created_from": "pose_history",
                 "source_entry": target_entry["name"],
                 "bone_count": bones_converted,
-                "bones": preset_data
+                "bones": preset_data,
+                # Pose-history export computes flattened-equivalent transforms
+                # (cumulative compose + invert, per-bone inherit_scale). Tag it so
+                # the merge tool recognizes it as a valid flattened source.
+                "flattened": True
             }
             
             with open(preset_file, 'w') as f:

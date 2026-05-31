@@ -264,6 +264,18 @@ class ARMATURE_OT_preset_merge_execute(Operator):
         name="Overwrite if exists",
         default=False,
     )
+    confirm_non_flattened: bpy.props.BoolProperty(
+        name="Merge non-flattened sources anyway",
+        description=(
+            "Some sources are not tagged as flattened. Composition assumes a "
+            "flattened (inherit_scale=NONE) context; results may be wrong for "
+            "parent-scale-inheriting bones. Tick to proceed at your own risk."
+        ),
+        default=False,
+    )
+
+    # Populated in invoke(): names of source presets missing the flattened tag.
+    _non_flattened_names = []
 
     def invoke(self, context, event):
         coll, _, scene = _get_merge_state(context)
@@ -274,6 +286,16 @@ class ARMATURE_OT_preset_merge_execute(Operator):
         seeded = getattr(scene, "nyarc_preset_merge_output_name", "").strip()
         if seeded:
             self.output_name = seeded
+        # Pre-scan sources so the dialog can warn about non-flattened presets.
+        self.confirm_non_flattened = False
+        type(self)._non_flattened_names = []
+        for item in coll:
+            try:
+                data = load_preset_from_file(item.name)
+            except Exception:
+                continue
+            if isinstance(data, dict) and not data.get("flattened", False):
+                type(self)._non_flattened_names.append(item.name)
         return context.window_manager.invoke_props_dialog(self, width=380)
 
     def draw(self, context):
@@ -286,6 +308,13 @@ class ARMATURE_OT_preset_merge_execute(Operator):
         layout.separator()
         layout.prop(self, "output_name")
         layout.prop(self, "overwrite")
+        non_flat = type(self)._non_flattened_names
+        if non_flat:
+            warn = layout.box()
+            warn.label(text="Non-flattened source(s) detected:", icon='ERROR')
+            warn.label(text=", ".join(non_flat))
+            warn.label(text="Composition assumes flattened (inherit_scale=NONE).")
+            warn.prop(self, "confirm_non_flattened")
         layout.label(text="Per bone: matrices compose in order (M1 · M2 · …).", icon='INFO')
 
     def execute(self, context):
@@ -334,14 +363,20 @@ class ARMATURE_OT_preset_merge_execute(Operator):
         # context. Reject any source that is not flattened — composing in a parent-
         # scale-inheriting context cannot be expressed as per-bone matrix products.
         non_flattened = [n for n, d in loaded if not d.get("flattened", False)]
-        if non_flattened:
+        if non_flattened and not self.confirm_non_flattened:
             self.report(
                 {'ERROR'},
-                "Cannot merge non-flattened presets: "
+                "Non-flattened presets: "
                 + ", ".join(non_flattened)
-                + ". Re-save them via the standard apply-as-rest workflow first."
+                + ". Tick 'Merge non-flattened sources anyway' to proceed, or re-save "
+                "them via the standard apply-as-rest workflow first."
             )
             return {'CANCELLED'}
+        if non_flattened:
+            print(
+                "Preset Merge: proceeding with non-flattened sources (user confirmed): "
+                + ", ".join(non_flattened)
+            )
 
         # Per-bone apply-as-rest composition (NOT a 4x4 matrix product).
         # Bones absent from a preset contribute the identity step for that
@@ -459,7 +494,7 @@ def draw_merge_ui(layout, context, props):
     info.scale_y = 0.8
     info.label(text="Emulates sequential apply-as-rest of the source presets in order.", icon='INFO')
     info.label(text="Per bone: local TRS matrices are composed (M1 · M2 · …), then re-decomposed.")
-    info.label(text="Sources must be flattened. Diff/precision presets are not supported.", icon='ERROR')
+    info.label(text="Non-flattened sources need confirmation. Diff/precision presets are not supported.", icon='ERROR')
 
 
 # ---------------------------------------------------------------------------
